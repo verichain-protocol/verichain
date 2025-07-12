@@ -1,0 +1,42 @@
+{
+  "canisters": {
+    "internet_identity": {
+      "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
+      "frontend": {},
+      "remote": {
+        "id": {
+          "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+        }
+      },
+      "type": "custom",
+      "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz"
+    },
+    "frontend": {
+      "dependencies": [
+        "logic_canister"
+      ],
+      "source": [
+        "src/frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "frontend"
+    },
+    "ai_canister": {
+      "candid": "src/ai_canister/src/ai_canister.did",
+      "type": "rust",
+      "package": "ai_canister"
+    },
+    "logic_canister": {
+      "main": "src/logic_canister/src/main.mo",
+      "type": "motoko"
+    }
+  },
+  "defaults": {
+    "build": {
+      "packtool": "mops sources",
+      "args": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}

@@ -1,0 +1,23 @@
+# This file defines the specific package details for the ai_canister.
+[package]
+name = "ai_canister"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+# Standard Internet Computer dependencies
+[dependencies]
+candid = "0.10"
+ic-cdk = "0.13"
+ic-cdk-macros = "0.8.4"
+
+# Dependencies for ONNX model inference
+tract-onnx = "0.21.12"
+tract-core = "0.21.12"
+tract-data = "0.21.12"
+
+# Dependency for image processing
+image = { version = "0.25.1", default-features = false, features = ["png", "jpeg"] }
+getrandom = { version = "0.2", features = ["js"] }
