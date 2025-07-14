@@ -29,6 +29,9 @@ dist/
 .mops/
 mops.lock
 
+# AI model binaries
+src/ai_canister/assets/*.onnx
+
 # Log files
 *.log
 npm-debug.log*

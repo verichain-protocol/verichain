@@ -1,4 +1,37 @@
-// This is the public interface for the AI canister.
+type DeepfakeResult = record {
+  is_deepfake: bool;
+  confidence: float32;
+  analysis_time: nat64;
+  media_type: text;
+  frame_results: opt vec FrameResult;
+};
+
+type FrameResult = record {
+  frame_number: nat32;
+  timestamp: float64;
+  is_deepfake: bool;
+  confidence: float32;
+};
+
+type MediaInput = record {
+  data: vec nat8;
+  media_type: text;
+  filename: text;
+};
+
+type SocialMediaInput = record {
+  url: text;
+  platform: text;
+};
+
+type ApiResponse = record {
+  success: bool;
+  result: opt DeepfakeResult;
+  error: opt text;
+};
+
 service : {
-  "verify": (blob) -> (text, float32) query;
+  analyze_media: (MediaInput) -> (ApiResponse);
+  analyze_social_media: (SocialMediaInput) -> (ApiResponse);
+  get_usage_info: () -> (nat32, nat32) query;
 }
