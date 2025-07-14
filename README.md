@@ -35,7 +35,7 @@ Ensure you have the following installed:
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/VeriChain-Studio/verichain.git
+    git clone https://github.com/verichain-protocol/verichain.git
     cd verichain
     ```
 
@@ -55,7 +55,7 @@ Ensure you have the following installed:
 4.  **Install All Dependencies:**
     This single command will install dependencies for the frontend (`npm`), Motoko (`mops`), and Rust (`cargo`).
     ```bash
-    npm install && mops install && cargo update
+    npm install && npx mops init && npx mops add base@0.14.9 && cargo update
     ```
 
 ### 3. Running the Application Locally
@@ -66,7 +66,7 @@ For local development, it's best to use two separate terminal windows.
 This terminal will run the local Internet Computer network. Keep it open to see live log outputs.
 ```bash
 # Start the local replica with a clean state
-dfx start --background --clean
+dfx start --clean
 ```
 
 **In Terminal 2 - Deploy the Canisters:**
