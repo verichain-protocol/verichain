@@ -17,6 +17,7 @@ base64 = "0.21"
 tokio = { version = "1", default-features = false, features = ["rt","time","macros","sync"] }
 getrandom = { version = "0.2", features = ["custom"] }
 rand = { version = "0.8", default-features = false, features = ["std_rng"] }
+chrono = { version = "0.4", features = ["serde"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 opencv = "0.88"
