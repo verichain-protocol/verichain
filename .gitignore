@@ -2,6 +2,8 @@
 .vscode/
 .idea/
 **/*~
+*.swp
+*.swo
 
 # OS-specific temporary files
 .DS_Store
@@ -16,23 +18,58 @@ Thumbs.db
 
 # Rust build artifacts
 target/
+Cargo.lock
 
 # Frontend build artifacts and dependencies
 node_modules/
 dist/
 .svelte-kit/
+build/
+.parcel-cache/
 
 # Environment variables
-.env
+# Ignore all .env files, but allow committing an example template
+.env*
+!/.env.example
 
 # Motoko package manager cache
 .mops/
 mops.lock
+.vessel/
 
 # AI model binaries
 src/ai_canister/assets/*.onnx
+src/ai_canister/assets/*.bin
+src/ai_canister/assets/*.pt
+src/ai_canister/assets/*.h5
+src/ai_canister/assets/*.tflite
 
-# Log files
+# Log files and host-specific artifacts
 *.log
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
+nohup.out
+.npm
+
+# Cache directories
+.cache/
+.cargo/
+.rustup/
+
+# Testing
+coverage/
+.nyc_output/
+junit.xml
+
+# Documentation build
+docs/build/
+site/
+
+# Backup files
+*.bak
+*.tmp
+*.temp
+
+# Docker
+.dockerignore
