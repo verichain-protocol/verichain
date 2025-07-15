@@ -26,6 +26,7 @@ dist/
 .svelte-kit/
 build/
 .parcel-cache/
+package-lock.json
 
 # Environment variables
 # Ignore all .env files, but allow committing an example template
