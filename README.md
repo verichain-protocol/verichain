@@ -29,7 +29,7 @@ VeriChain is a decentralized platform that leverages AI for deepfake detection i
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/verichain.git
+git clone https://github.com/verichain-protocol/verichain.git
 cd verichain
 
 # Complete setup (installs dependencies, downloads model, builds project)
