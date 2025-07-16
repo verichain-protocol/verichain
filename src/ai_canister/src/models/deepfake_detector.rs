@@ -15,8 +15,6 @@ use image::{DynamicImage};
 use serde::{Deserialize, Serialize};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use sha2::{Sha256, Digest};
-use std::fs;
-use std::path::Path;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ModelMetadata {
@@ -39,89 +37,44 @@ pub struct DeepfakeDetector {
     model_data: Vec<u8>,
     initialized: bool,
     model_metadata: Option<ModelMetadata>,
+    // Streaming initialization state
+    streaming_init_chunks_processed: u32,
+    streaming_init_in_progress: bool,
+    streaming_init_model_data: Vec<u8>,
 }
 
 impl DeepfakeDetector {
-    // Initialize detector with ONNX model
+    // Initialize detector without loading model (will load on demand)
     pub fn new() -> Result<Self, String> {
-        // For now, initialize without loading model data during canister init
-        // Model will be loaded lazily when needed
         Ok(DeepfakeDetector {
             model_data: Vec::new(),
             initialized: false,
             model_metadata: None,
+
+            // Streaming initialization state
+            streaming_init_chunks_processed: 0,
+            streaming_init_in_progress: false,
+            streaming_init_model_data: Vec::new(),
         })
     }
 
-    // Load ONNX model from chunked assets
+    // Load ONNX model from uploaded chunks in stable memory
+    #[allow(dead_code)]
     fn load_chunked_model_data() -> Result<(Vec<u8>, ModelMetadata), String> {
-        let metadata_path = "src/ai_canister/assets/model_metadata.json";
-        
-        if !Path::new(metadata_path).exists() {
-            return Err("Model metadata not found. Run 'make model-setup' first.".to_string());
-        }
-        
-        let metadata_content = fs::read_to_string(metadata_path)
-            .map_err(|e| format!("Failed to read metadata: {}", e))?;
-            
-        let metadata: ModelMetadata = serde_json::from_str(&metadata_content)
-            .map_err(|e| format!("Failed to parse model metadata: {}", e))?;
-        
-        if metadata.total_chunks == 0 {
-            return Err("Invalid metadata: no chunks found".to_string());
-        }
-        
-        // Load and reconstruct model from chunks
-        let mut model_data = Vec::with_capacity(metadata.original_size as usize);
-        
-        for chunk_info in &metadata.chunks {
-            let chunk_data = Self::load_chunk(chunk_info.chunk_id)?;
-            
-            // Verify chunk hash
-            let calculated_hash = Self::calculate_sha256(&chunk_data);
-            if calculated_hash != chunk_info.hash {
-                return Err(format!(
-                    "Chunk {} hash mismatch. Expected: {}, Got: {}", 
-                    chunk_info.chunk_id, chunk_info.hash, calculated_hash
-                ));
-            }
-            
-            // Verify chunk size
-            if chunk_data.len() != chunk_info.size as usize {
-                return Err(format!(
-                    "Chunk {} size mismatch. Expected: {}, Got: {}", 
-                    chunk_info.chunk_id, chunk_info.size, chunk_data.len()
-                ));
-            }
-            
-            model_data.extend_from_slice(&chunk_data);
-        }
-        
-        // Verify total size
-        if model_data.len() != metadata.original_size as usize {
-            return Err(format!(
-                "Reconstructed model size mismatch. Expected: {}, Got: {}", 
-                metadata.original_size, model_data.len()
-            ));
-        }
-        
-        Ok((model_data, metadata))
+        // This will be implemented to load from stable memory or uploaded chunks
+        // For now, return a placeholder error to indicate chunks need to be uploaded
+        Err("Model chunks not yet uploaded. Use upload_chunk and upload_metadata endpoints to upload the model first.".to_string())
     }
     
-    // Load individual chunk
-    fn load_chunk(chunk_id: u32) -> Result<Vec<u8>, String> {
-        let chunk_path = format!("src/ai_canister/assets/model_chunk_{:03}.bin", chunk_id);
-        
-        if !Path::new(&chunk_path).exists() {
-            return Err(format!("Chunk {} not found at {}. Run 'make model-setup' first.", chunk_id, chunk_path));
-        }
-        
-        fs::read(&chunk_path)
-            .map_err(|e| format!("Failed to read chunk {}: {}", chunk_id, e))
+    // Load individual chunk from stable memory
+    #[allow(dead_code)]
+    fn load_chunk(_chunk_id: u32) -> Result<Vec<u8>, String> {
+        // This will be implemented to load from stable memory
+        Err("Chunk loading from stable memory not yet implemented".to_string())
     }
     
-    // Calculate SHA256 hash
-    fn calculate_sha256(data: &[u8]) -> String {
+    // Calculate SHA256 hash (public for use in handlers)
+    pub fn calculate_sha256(data: &[u8]) -> String {
         let mut hasher = Sha256::new();
         hasher.update(data);
         format!("{:x}", hasher.finalize())
@@ -139,13 +92,13 @@ impl DeepfakeDetector {
             return Err(format!("Image size exceeds {}MB limit", MAX_FILE_SIZE_IMAGE_MB));
         }
 
-        let start_time = std::time::Instant::now();
+        let start_time = ic_cdk::api::time();
         
         let image = self.decode_image(image_data)?;
         let preprocessed = self.preprocess_image(image)?;
         let confidence = self.run_onnx_inference(&preprocessed)?;
         
-        let processing_time = start_time.elapsed().as_millis() as u64;
+        let processing_time = (ic_cdk::api::time() - start_time) / 1_000_000; // Convert to milliseconds
         
         Ok(DetectionResult {
             is_deepfake: confidence > MODEL_CONFIDENCE_THRESHOLD,
@@ -174,7 +127,7 @@ impl DeepfakeDetector {
             return Err(format!("Video size exceeds {}MB limit", MAX_FILE_SIZE_VIDEO_MB));
         }
 
-        let start_time = std::time::Instant::now();
+        let start_time = ic_cdk::api::time();
         
         let frames = self.extract_video_frames(video_data)?;
         
@@ -212,7 +165,7 @@ impl DeepfakeDetector {
         // Video considered deepfake if >30% of frames are deepfakes
         let is_video_deepfake = deepfake_percentage > 30.0;
         
-        let processing_time = start_time.elapsed().as_millis() as u64;
+        let processing_time = (ic_cdk::api::time() - start_time) / 1_000_000; // Convert to milliseconds
 
         Ok(DetectionResult {
             is_deepfake: is_video_deepfake,
@@ -243,7 +196,7 @@ impl DeepfakeDetector {
             return Err("No frames provided".to_string());
         }
 
-        let start_time = std::time::Instant::now();
+        let start_time = ic_cdk::api::time();
         let mut frame_results = Vec::new();
         let mut total_confidence = 0.0;
         let mut deepfake_count = 0;
@@ -272,7 +225,7 @@ impl DeepfakeDetector {
         let deepfake_percentage = (deepfake_count as f32 / frames_data.len() as f32) * 100.0;
         let is_video_deepfake = deepfake_percentage > 30.0;
         
-        let processing_time = start_time.elapsed().as_millis() as u64;
+        let processing_time = (ic_cdk::api::time() - start_time) / 1_000_000; // Convert to milliseconds
 
         Ok(DetectionResult {
             is_deepfake: is_video_deepfake,
@@ -558,14 +511,106 @@ impl DeepfakeDetector {
         
         Ok(())
     }
-}
 
-impl Default for DeepfakeDetector {
-    fn default() -> Self {
-        Self::new().unwrap_or_else(|_| DeepfakeDetector {
-            model_data: Vec::new(),
-            initialized: false,
-            model_metadata: None,
+    // Set model data from uploaded chunks
+    pub fn set_model_data(&mut self, model_data: Vec<u8>) -> Result<(), String> {
+        if model_data.is_empty() {
+            return Err("Model data cannot be empty".to_string());
+        }
+        
+        self.model_data = model_data;
+        self.initialized = true;
+        
+        // Update metadata to reflect real model
+        self.model_metadata = Some(ModelMetadata {
+            original_file: "uploaded-model.onnx".to_string(),
+            original_size: self.model_data.len() as u64,
+            total_chunks: 1,
+            chunk_size_mb: (self.model_data.len() as f64 / (1024.0 * 1024.0)).ceil() as u32,
+            chunks: vec![]
+        });
+        
+        Ok(())
+    }
+
+    // Start streaming initialization
+    pub fn start_streaming_initialization(&mut self) -> Result<(), String> {
+        if self.initialized {
+            return Err("Model already initialized".to_string());
+        }
+        
+        if self.streaming_init_in_progress {
+            return Err("Streaming initialization already in progress".to_string());
+        }
+        
+        self.streaming_init_in_progress = true;
+        self.streaming_init_chunks_processed = 0;
+        self.streaming_init_model_data = Vec::new();
+        
+        Ok(())
+    }
+
+    // Continue streaming initialization - process chunks in batches
+    pub fn continue_streaming_initialization(&mut self, batch_size: u32) -> Result<(u32, u32), String> {
+        if !self.streaming_init_in_progress {
+            return Err("Streaming initialization not started".to_string());
+        }
+        
+        let metadata = crate::state::get_model_metadata()
+            .ok_or("Model metadata not found")?;
+        
+        let total_chunks = metadata.total_chunks;
+        let start_chunk = self.streaming_init_chunks_processed;
+        let end_chunk = std::cmp::min(start_chunk + batch_size, total_chunks);
+        
+        // Process chunks in this batch
+        for chunk_id in start_chunk..end_chunk {
+            let chunk = crate::state::get_model_chunk(chunk_id)
+                .ok_or(format!("Chunk {} not found", chunk_id))?;
+            
+            self.streaming_init_model_data.extend_from_slice(&chunk.data);
+        }
+        
+        self.streaming_init_chunks_processed = end_chunk;
+        
+        // Check if we've processed all chunks
+        if self.streaming_init_chunks_processed >= total_chunks {
+            // Finalize initialization
+            self.model_data = std::mem::take(&mut self.streaming_init_model_data);
+            self.initialized = true;
+            self.streaming_init_in_progress = false;
+            
+            // Update metadata to reflect real model
+            self.model_metadata = Some(ModelMetadata {
+                original_file: "uploaded-model.onnx".to_string(),
+                original_size: self.model_data.len() as u64,
+                total_chunks: total_chunks,
+                chunk_size_mb: (self.model_data.len() as f64 / (1024.0 * 1024.0) / total_chunks as f64).ceil() as u32,
+                chunks: vec![]
+            });
+        }
+        
+        Ok((self.streaming_init_chunks_processed, total_chunks))
+    }
+
+    // Get initialization status
+    pub fn get_initialization_status(&self) -> Result<crate::types::InitializationStatus, String> {
+        let metadata = crate::state::get_model_metadata();
+        
+        let (total_chunks, estimated_total_size_mb) = if let Some(meta) = metadata {
+            (meta.total_chunks, meta.original_size as f64 / (1024.0 * 1024.0))
+        } else {
+            (0, 0.0)
+        };
+        
+        Ok(crate::types::InitializationStatus {
+            is_initialized: self.initialized,
+            is_streaming: self.streaming_init_in_progress,
+            processed_chunks: self.streaming_init_chunks_processed,
+            total_chunks,
+            current_size_mb: self.streaming_init_model_data.len() as f64 / (1024.0 * 1024.0),
+            estimated_total_size_mb,
+            initialization_started: self.streaming_init_in_progress || self.initialized,
         })
     }
 }
