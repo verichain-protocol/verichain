@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # VeriChain Final Integration Test
-# Comprehensive test of the complete upload and streaming initialization workflow
+# Complete test of the upload and streaming initialization workflow
 
 set -e
 

@@ -103,27 +103,10 @@ echo -e "\n${BLUE}📊 Checking upload status...${NC}"
 STATUS=$(dfx canister call $CANISTER_NAME get_upload_status | grep -o '{.*}')
 echo "$STATUS" | jq .
 
-# Initialize model from chunks
-echo -e "\n${BLUE}🚀 Initializing model from uploaded chunks...${NC}"
-INIT_RESULT=$(dfx canister call $CANISTER_NAME initialize_model_from_chunks)
-
-if echo "$INIT_RESULT" | grep -q "successfully"; then
-    echo -e "${GREEN}✅ Model initialized successfully!${NC}"
-    
-    # Verify model integrity
-    echo -e "\n${BLUE}🔍 Verifying model integrity...${NC}"
-    INTEGRITY_CHECK=$(dfx canister call $CANISTER_NAME verify_model_integrity)
-    
-    if echo "$INTEGRITY_CHECK" | grep -q "true"; then
-        echo -e "${GREEN}✅ Model integrity verified${NC}"
-    else
-        echo -e "${YELLOW}⚠️  Model integrity check failed${NC}"
-    fi
-else
-    echo -e "${RED}❌ Failed to initialize model${NC}"
-    echo "$INIT_RESULT"
-    exit 1
-fi
-
-echo -e "\n${GREEN}🎉 Model upload completed successfully!${NC}"
-echo -e "${BLUE}💡 You can now use the canister for real deepfake detection${NC}"
+echo -e "\n${GREEN}🎉 Model chunks uploaded successfully!${NC}"
+echo -e "${BLUE}� Next steps:${NC}"
+echo -e "  1. Start streaming initialization: ${YELLOW}dfx canister call ai_canister initialize_model_from_chunks${NC}"
+echo -e "  2. Continue in batches: ${YELLOW}dfx canister call ai_canister continue_model_initialization '(opt 10)'${NC}"
+echo -e "  3. Check progress: ${YELLOW}dfx canister call ai_canister get_model_initialization_status${NC}"
+echo -e "  4. Repeat step 2 until complete"
+echo -e "\n${BLUE}� Or run the demo: ${YELLOW}./scripts/demo-streaming-init.sh${NC}"
