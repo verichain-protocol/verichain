@@ -1,6 +1,5 @@
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
-use std::collections::HashMap;
 
 // Core input types
 #[derive(CandidType, Deserialize, Clone, Debug)]
@@ -273,6 +272,7 @@ pub struct NotificationPreferences {
 
 // Export utility functions
 impl MediaInput {
+    #[allow(dead_code)]
     pub fn new(filename: String, data: Vec<u8>) -> Self {
         Self {
             filename,
@@ -281,6 +281,7 @@ impl MediaInput {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_metadata(filename: String, data: Vec<u8>, metadata: String) -> Self {
         Self {
             filename,
@@ -289,16 +290,19 @@ impl MediaInput {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get_file_extension(&self) -> Option<&str> {
         self.filename.split('.').last()
     }
 
+    #[allow(dead_code)]
     pub fn get_file_size(&self) -> usize {
         self.data.len()
     }
 }
 
 impl ApiResponse {
+    #[allow(dead_code)]
     pub fn success(result: DetectionResult) -> Self {
         Self {
             success: true,
@@ -307,6 +311,7 @@ impl ApiResponse {
         }
     }
 
+    #[allow(dead_code)]
     pub fn error(error: String) -> Self {
         Self {
             success: false,
@@ -315,6 +320,7 @@ impl ApiResponse {
         }
     }
 
+    #[allow(dead_code)]
     pub fn from_verichain_error(error: VeriChainError) -> Self {
         Self {
             success: false,
@@ -325,6 +331,7 @@ impl ApiResponse {
 }
 
 impl DetectionResult {
+    #[allow(dead_code)]
     pub fn new_image(is_deepfake: bool, confidence: f32, processing_time_ms: u64) -> Self {
         Self {
             is_deepfake,
@@ -336,6 +343,7 @@ impl DetectionResult {
         }
     }
 
+    #[allow(dead_code)]
     pub fn new_video(
         is_deepfake: bool,
         confidence: f32,
@@ -352,6 +360,7 @@ impl DetectionResult {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_metadata(mut self, metadata: serde_json::Value) -> Self {
         self.metadata = Some(metadata.to_string());
         self
@@ -360,12 +369,17 @@ impl DetectionResult {
 
 // Constants
 pub const MODEL_INPUT_SIZE: (u32, u32) = (224, 224);
+#[allow(dead_code)]
 pub const MAX_FRAMES_PER_VIDEO: usize = 30;
 pub const MAX_FILE_SIZE_IMAGE_MB: u32 = 10;
 pub const MAX_FILE_SIZE_VIDEO_MB: u32 = 25;
+#[allow(dead_code)]
 pub const FREE_TIER_MONTHLY_LIMIT: u32 = 3;
+#[allow(dead_code)]
 pub const PREMIUM_TIER_MONTHLY_LIMIT: u32 = 1000;
+#[allow(dead_code)]
 pub const DEVELOPER_TIER_MONTHLY_LIMIT: u32 = 10000;
+#[allow(dead_code)]
 pub const MAX_BATCH_SIZE: usize = 50;
 pub const SUPPORTED_IMAGE_FORMATS: &[&str] = &["jpg", "jpeg", "png"];
 pub const SUPPORTED_VIDEO_FORMATS: &[&str] = &["mp4", "mov"];
