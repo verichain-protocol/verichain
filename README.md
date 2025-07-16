@@ -1,87 +1,349 @@
-# VeriChain: On-Chain Deepfake Detection Platform
+# VeriChain
 
-VeriChain is a decentralized application built on the Internet Computer that provides a trustless and transparent solution for detecting deepfakes and AI-generated media. By leveraging an on-chain AI model, it offers verifiable analysis for images and videos.
+Blockchain-powered deepfake detection platform on Internet Computer Protocol (ICP).
 
-## 🏛️ Architecture
+## Overview
 
-This project is structured as a **monorepo**, containing all necessary services within a single repository for streamlined development and deployment.
+VeriChain is a decentralized platform that leverages AI for deepfake detection in images and videos. Built on Internet Computer blockchain for transparency and immutability of detection results.
 
--   **`src/frontend/`**: The user-facing web application, built with React. It interacts with the `logic_canister` for all backend operations.
--   **`src/logic_canister/`**: The "application brain," written in Motoko. It handles all business logic, including user authentication (via Internet Identity), usage quotas, API key management, and orchestrates calls to the AI canister.
--   **`src/ai_canister/`**: The "AI engine," written in Rust for maximum performance. This canister is dedicated to running the ONNX model for deepfake detection inference.
+## Features
 
-This hybrid architecture leverages the strengths of each language: the safety and ease of Motoko for business logic, and the raw performance of Rust for computationally intensive AI tasks.
+- **Real-time Deepfake Detection**: Advanced AI model for image and video analysis
+- **Blockchain Verification**: Immutable detection records on ICP
+- **Multiple Media Formats**: Support for JPG, PNG, MP4, WebM, and more
+- **Batch Processing**: Premium users can analyze multiple files simultaneously
+- **API Access**: RESTful API for developers and integrations
+- **Smart Contract Logic**: Decentralized business logic with usage tracking
 
-## 🛠️ Tech Stack
+## Quick Start
 
--   **Frontend:** React, TypeScript, Vite
--   **Logic Canister:** Motoko
--   **AI Canister:** Rust
--   **Blockchain:** Internet Computer (ICP)
+### Prerequisites
 
-## 🚀 Getting Started
+- Node.js ≥ 16.0.0
+- Rust ≥ 1.70.0
+- DFX ≥ 0.15.0
+- Git
+- Python 3.7+ (for model chunking tools)
 
-Follow these steps to set up and run the project on your local machine.
+### Installation
 
-### 1. Prerequisites
-
-Ensure you have the following installed:
--   [DFX (ICP SDK)](https://internetcomputer.org/docs/current/developer-docs/setup/install) (version 0.15.0 or later)
--   [Node.js](https://nodejs.org) (version 18.x or later)
--   [Rust & Cargo](https://www.rust-lang.org/tools/install) with the `wasm32-unknown-unknown` target (`rustup target add wasm32-unknown-unknown`)
--   [Mops](https://mops.one/) (`npm install -g mops`)
-
-### 2. Installation & Setup
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/verichain-protocol/verichain.git
-    cd verichain
-    ```
-
-2.  **Download the AI Model:**
-    The AI canister requires the pre-trained `.onnx` model file.
-    -   Download `verichain-model.onnx` from the [Hugging Face Model Hub](https://huggingface.co/einrafh/verichain-deepfake-models/tree/main/models/onnx).
-    -   Create a directory `src/ai_canister/assets/`.
-    -   Place the downloaded `verichain-model.onnx` file inside this `assets` directory.
-
-3.  **Initialize Motoko Package Manager:**
-    This command creates the `mops.toml` configuration file.
-    ```bash
-    mops init
-    ```
-    *(When prompted, select `Project` and choose `n` for the GitHub workflow.)*
-
-4.  **Install All Dependencies:**
-    This single command will install dependencies for the frontend (`npm`), Motoko (`mops`), and Rust (`cargo`).
-    ```bash
-    npm install && npx mops init && npx mops add base@0.14.9 && cargo update
-    ```
-
-### 3. Running the Application Locally
-
-For local development, it's best to use two separate terminal windows.
-
-**In Terminal 1 - Start the Local Replica:**
-This terminal will run the local Internet Computer network. Keep it open to see live log outputs.
 ```bash
-# Start the local replica with a clean state
-dfx start --clean
+# Clone repository
+git clone https://github.com/your-username/verichain.git
+cd verichain
+
+# Complete setup (installs dependencies, downloads model, builds project)
+make setup
+
+# Start development environment
+make dev
 ```
 
-**In Terminal 2 - Deploy the Canisters:**
-Use this terminal to run all other `dfx` commands.
+### Manual Setup (Alternative)
+
 ```bash
-# Deploy all canisters to the local network
-dfx deploy
+# Install dependencies
+make install
+
+# Download and setup AI model
+make model-setup
+
+# Build project
+make build
+
+# Deploy locally
+make deploy
 ```
 
-Once deployed, the terminal will provide you with URLs to access the frontend and the Candid UI for each canister.
+## Architecture
 
-## 📄 License
+```
+verichain/
+├── .env.example             # Environment configuration template
+├── .dockerignore            # Docker build exclusions
+├── Dockerfile               # Container configuration
+├── docker-compose.yml       # Multi-container setup
+├── Makefile                 # Build and development tools
+├── src/
+│   ├── ai_canister/          # AI processing canister (Rust)
+│   │   ├── src/
+│   │   │   ├── lib.rs        # Main entry point
+│   │   │   ├── handlers.rs   # API endpoints
+│   │   │   ├── state.rs      # State management
+│   │   │   ├── upload_chunks.rs # Model chunk handling
+│   │   │   ├── models/       # AI model logic
+│   │   │   ├── types/        # Type definitions
+│   │   │   └── utils/        # Helper functions
+│   │   └── assets/           # Model chunks (auto-generated)
+│   ├── logic_canister/       # Business logic canister (Motoko)
+│   │   └── src/main.mo       # Smart contract logic
+│   └── frontend/             # React frontend (TypeScript)
+│       └── src/
+├── scripts/
+│   ├── build.sh             # Build automation
+│   └── model-setup.sh       # Model download/chunking
+├── tools/
+│   └── model_chunker.py     # Python utility for model processing
+└── dfx.json                 # Internet Computer configuration
+```
+
+## API Reference
+
+### Endpoints
+
+#### Image Analysis
+```bash
+POST /analyze_image
+Content-Type: application/octet-stream
+Body: [image binary data]
+
+Response:
+{
+  "is_deepfake": boolean,
+  "confidence": number,
+  "processing_time_ms": number,
+  "metadata": object
+}
+```
+
+#### Video Analysis
+```bash
+POST /analyze_video
+Content-Type: application/octet-stream
+Body: [video binary data]
+
+Response:
+{
+  "is_deepfake": boolean,
+  "confidence": number,
+  "frames_analyzed": number,
+  "processing_time_ms": number,
+  "metadata": object
+}
+```
+
+#### Health Check
+```bash
+GET /health_check
+
+Response:
+{
+  "status": "healthy",
+  "model_loaded": true,
+  "uptime_seconds": number,
+  "version": "1.0.0"
+}
+```
+
+### Usage Limits
+
+- **Free Users**: 3 analyses per month
+- **Premium Users**: 1000 analyses per month + batch processing
+- **API Access**: Premium subscription required
+
+## Development
+
+### Available Commands
+
+```bash
+make help          # Show available commands
+make setup         # Complete project setup
+make install       # Install dependencies only
+make model-setup   # Download/chunk AI model
+make build         # Build for production
+make dev-build     # Build for development (faster)
+make start         # Start DFX replica
+make stop          # Stop DFX replica
+make deploy        # Deploy to local network
+make dev           # Start complete development environment
+make test          # Run all tests
+make test-health   # Quick health check
+make test-model    # Test model integrity
+make clean         # Clean build artifacts
+make reset         # Reset and rebuild everything
+make status        # Show project status
+make check         # Check system requirements
+make logs          # Show canister logs
+make update        # Update all dependencies
+make package       # Package for distribution
+```
+
+### Docker Support
+
+```bash
+# Build Docker image
+make docker-build
+
+# Start with Docker
+make docker-dev
+
+# Stop Docker containers
+make docker-stop
+
+# Clean Docker resources
+make docker-clean
+```
+
+### Testing
+
+```bash
+# Run all tests
+make test
+
+# Quick health check
+make test-health
+
+# Test model integrity
+make test-model
+
+# Test with sample image
+curl -X POST "http://localhost:4943/analyze_image" \
+  --data-binary @sample.jpg \
+  -H "Content-Type: application/octet-stream"
+```
+
+## Configuration
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and customize:
+
+```bash
+cp .env.example .env
+```
+
+Example configuration:
+```bash
+# DFX & Internet Computer
+DFX_VERSION=0.27.0
+DFX_NETWORK=local
+
+# Build Environment  
+RUST_BACKTRACE=1
+NODE_ENV=development
+
+# AI Model Configuration
+AI_MODEL_CHUNK_SIZE_MB=15
+MAX_MODEL_SIZE_MB=100
+```
+
+### Model Configuration
+
+The AI model is automatically downloaded and chunked during setup. Configuration in `src/ai_canister/src/types/api_types.rs`:
+
+```rust
+pub const MODEL_INPUT_SIZE: u32 = 224;
+pub const MODEL_CONFIDENCE_THRESHOLD: f32 = 0.5;
+pub const MAX_FILE_SIZE_IMAGE_MB: u32 = 10;
+pub const MAX_FILE_SIZE_VIDEO_MB: u32 = 50;
+```
+
+### Advanced Model Tools
+
+For manual model processing, use the Python chunker:
+
+```bash
+# Chunk a large model file
+python3 tools/model_chunker.py chunk model.onnx src/ai_canister/assets/
+
+# Verify chunk integrity
+python3 tools/model_chunker.py verify src/ai_canister/assets/
+
+# Reconstruct model from chunks
+python3 tools/model_chunker.py reconstruct src/ai_canister/assets/ reconstructed.onnx
+```
+
+### Build Configuration
+
+Environment-specific builds in `scripts/build.sh`:
+
+- **Development**: Fast builds with debug symbols
+- **Production**: Release builds with compression
+
+## Performance
+
+### Benchmark Results
+
+- **Image Analysis**: ~200-500ms per image
+- **Video Analysis**: ~2-5s per video (depending on length)
+- **Batch Processing**: Parallel processing for premium users
+- **Memory Usage**: <512MB per canister instance
+
+### Resource Limits
+
+- **Max Image Size**: 10MB
+- **Max Video Size**: 50MB
+- **Concurrent Requests**: 100 per canister
+- **Storage**: Unlimited (blockchain-based)
+
+## Security
+
+- **Input Validation**: Comprehensive file type and size validation
+- **Rate Limiting**: Per-user usage tracking and limits
+- **Access Control**: Premium features require subscription
+- **Model Integrity**: SHA256 verification of AI model chunks
+- **Blockchain Security**: Leverages ICP's consensus mechanism
+
+## Troubleshooting
+
+### Common Issues
+
+**Model Download Fails:**
+```bash
+# Check internet connection and retry
+make model-setup
+```
+
+**Build Errors:**
+```bash
+# Clean and rebuild
+make clean
+make setup
+```
+
+**DFX Connection Issues:**
+```bash
+# Reset local replica
+make stop
+make start
+```
+
+**Check System Status:**
+```bash
+make status
+make check
+```
+
+**Docker Issues:**
+```bash
+# Reset Docker environment
+make docker-clean
+make docker-dev
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
+
+### Code Standards
+
+- **Rust**: Use `cargo fmt` and `cargo clippy`
+- **JavaScript**: Use Prettier and ESLint
+- **Motoko**: Follow official style guide
+- **Documentation**: Update README for new features
+
+## License
 
 Copyright (c) 2025
 
 -   Muhammad Rafly Ash Shiddiqi
 -   Nickolas Quinn Budiyono
 -   Christopher Robin Tanugroho
+
+---
+
+**VeriChain** - Decentralized Deepfake Detection on Internet Computer Protocol
