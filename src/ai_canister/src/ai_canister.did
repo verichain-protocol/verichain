@@ -1,37 +1,83 @@
-type DeepfakeResult = record {
+type DetectionResult = record {
   is_deepfake: bool;
   confidence: float32;
-  analysis_time: nat64;
-  media_type: text;
-  frame_results: opt vec FrameResult;
+  media_type: variant { Image; Video };
+  processing_time_ms: nat64;
+  frames_analyzed: opt nat;
+  metadata: opt text;
 };
 
 type FrameResult = record {
-  frame_number: nat32;
-  timestamp: float64;
-  is_deepfake: bool;
+  frame_index: nat;
   confidence: float32;
+  is_deepfake: bool;
+  timestamp_ms: nat64;
 };
 
 type MediaInput = record {
-  data: vec nat8;
-  media_type: text;
   filename: text;
+  data: vec nat8;
+  metadata: opt text;
 };
 
-type SocialMediaInput = record {
-  url: text;
-  platform: text;
+type ModelInfo = record {
+  version: text;
+  input_size: record { nat32; nat32 };
+  supported_formats: vec text;
+  max_file_size_mb: nat32;
+  confidence_threshold: float32;
 };
 
-type ApiResponse = record {
-  success: bool;
-  result: opt DeepfakeResult;
-  error: opt text;
+type SystemHealth = record {
+  status: text;
+  model_loaded: bool;
+  uptime_seconds: nat64;
+  version: text;
+};
+
+type UsageInfo = record {
+  current_usage: nat32;
+  max_usage: nat32;
+  is_premium: bool;
+  batch_limit: nat32;
+  resets_at: nat64;
+};
+
+type UploadStatus = record {
+  total_chunks: nat32;
+  uploaded_chunks: nat32;
+  missing_chunks: vec nat32;
+  is_complete: bool;
+  original_size_mb: float64;
+};
+
+type InitializationStatus = record {
+  is_initialized: bool;
+  is_streaming: bool;
+  processed_chunks: nat32;
+  total_chunks: nat32;
+  current_size_mb: float64;
+  estimated_total_size_mb: float64;
+  initialization_started: bool;
 };
 
 service : {
-  analyze_media: (MediaInput) -> (ApiResponse);
-  analyze_social_media: (SocialMediaInput) -> (ApiResponse);
-  get_usage_info: () -> (nat32, nat32) query;
+  // Core analysis functions
+  analyze_image: (vec nat8) -> (variant { Ok: DetectionResult; Err: text });
+  analyze_video: (vec nat8) -> (variant { Ok: DetectionResult; Err: text });
+  analyze_media: (MediaInput) -> (variant { Ok: DetectionResult; Err: text });
+  
+  // Model management
+  upload_model_chunk: (nat32, vec nat8, text) -> (variant { Ok: text; Err: text });
+  upload_model_metadata: (text, nat64, nat32, nat32) -> (variant { Ok: text; Err: text });
+  get_upload_status: () -> (UploadStatus) query;
+  initialize_model_from_chunks: () -> (variant { Ok: text; Err: text });
+  continue_model_initialization: (opt nat32) -> (variant { Ok: text; Err: text });
+  get_model_initialization_status: () -> (variant { Ok: InitializationStatus; Err: text }) query;
+  
+  // System information
+  get_model_info: () -> (ModelInfo) query;
+  health_check: () -> (SystemHealth) query;
+  verify_model_integrity: () -> (bool) query;
+  get_usage_info: () -> (UsageInfo) query;
 }

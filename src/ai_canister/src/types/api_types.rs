@@ -367,6 +367,28 @@ impl DetectionResult {
     }
 }
 
+// Model upload status tracking
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct UploadStatus {
+    pub total_chunks: u32,
+    pub uploaded_chunks: u32,
+    pub missing_chunks: Vec<u32>,
+    pub is_complete: bool,
+    pub original_size_mb: f64,
+}
+
+// Model initialization status tracking
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct InitializationStatus {
+    pub is_initialized: bool,
+    pub is_streaming: bool,
+    pub processed_chunks: u32,
+    pub total_chunks: u32,
+    pub current_size_mb: f64,
+    pub estimated_total_size_mb: f64,
+    pub initialization_started: bool,
+}
+
 // Constants
 pub const MODEL_INPUT_SIZE: (u32, u32) = (224, 224);
 #[allow(dead_code)]
