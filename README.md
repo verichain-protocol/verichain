@@ -55,6 +55,41 @@ make build
 make deploy
 ```
 
+### Model Upload to Canister
+
+After deployment, the AI model needs to be uploaded to the canister in chunks:
+
+```bash
+# Upload model chunks to AI canister
+./scripts/upload-model.sh
+
+# Check upload progress
+dfx canister call ai_canister get_upload_status
+
+# Start streaming model initialization (optimized for large models)
+dfx canister call ai_canister initialize_model_from_chunks
+
+# Continue model initialization in batches (process 10 chunks at a time)
+dfx canister call ai_canister continue_model_initialization '(opt 10)'
+
+# Check initialization progress
+dfx canister call ai_canister get_model_initialization_status
+
+# Repeat the continue command until initialization is complete
+# The process will automatically finalize when all chunks are processed
+
+# Verify model is ready
+dfx canister call ai_canister health_check
+```
+
+**Note**: The model upload and initialization process:
+- Splits the 327MB model into 410 chunks of ~0.8MB each
+- Uploads chunks individually with hash verification
+- Stores chunks in stable memory for persistence across upgrades
+- Uses streaming initialization to avoid instruction limit errors
+- Processes chunks in configurable batches (default: 10 chunks per call)
+- Requires successful upload of all chunks before model initialization
+
 ## Architecture
 
 ```
