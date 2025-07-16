@@ -1,7 +1,7 @@
 # VeriChain Makefile - Build and Development Tools
 .PHONY: help setup install model-setup build deploy clean start stop dev all test reset
 .PHONY: docker-build docker-dev docker-stop docker-clean
-.PHONY: upload-model setup-model-complete stream-init-demo test-performance test-error-recovery integration-test
+.PHONY: upload-model setup-model-complete stream-init-demo test-performance test-error-recovery integration-test test-social-media
 .PHONY: full-setup qa-suite
 .DEFAULT_GOAL := help
 
@@ -203,3 +203,7 @@ bench: ## Run benchmarks
 	@echo "⚡ Running benchmarks..."
 	@cargo bench
 	@echo "✅ Benchmarks completed."
+
+test-social-media: ## Test social media upload workflow
+	@echo "🌐 Testing social media workflow..."
+	@./scripts/test-social-media.sh

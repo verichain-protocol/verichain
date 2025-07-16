@@ -9,6 +9,25 @@ pub struct MediaInput {
     pub metadata: Option<String>,
 }
 
+// Social media input for URL-based analysis
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct SocialMediaInput {
+    pub url: String,
+    pub platform: SocialMediaPlatform,
+    pub frames: Vec<Vec<u8>>, // Preprocessed frames from frontend
+    pub metadata: Option<String>,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub enum SocialMediaPlatform {
+    YouTube,
+    Instagram,
+    TikTok,
+    Twitter,
+    Facebook,
+    Other(String),
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FrameResult {
     pub frame_index: usize,
@@ -32,6 +51,7 @@ pub struct DetectionResult {
 pub enum MediaType {
     Image,
     Video,
+    SocialMediaVideo,
 }
 
 // User management types

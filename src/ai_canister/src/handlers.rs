@@ -60,6 +60,90 @@ pub async fn analyze_media(input: MediaInput) -> Result<DetectionResult, String>
     }
 }
 
+#[update]
+pub async fn analyze_social_media(input: SocialMediaInput) -> Result<DetectionResult, String> {
+    // Validate input
+    if input.frames.is_empty() {
+        return Err("No frames provided for social media analysis".to_string());
+    }
+    
+    if input.url.is_empty() {
+        return Err("Social media URL cannot be empty".to_string());
+    }
+    
+    // Validate URL format based on platform
+    validate_social_media_url(&input.url, &input.platform)?;
+    
+    let start_time = time();
+    
+    let result = state::with_detector_mut(|detector| -> Result<DetectionResult, String> {
+        // Use existing analyze_frames method but enhance result with social media metadata
+        let mut detection_result = detector.analyze_frames(input.frames)?;
+        
+        // Update media type and add social media specific metadata
+        detection_result.media_type = MediaType::SocialMediaVideo;
+        
+        // Enhance metadata with social media information
+        let social_metadata = serde_json::json!({
+            "platform": format!("{:?}", input.platform),
+            "source_url": input.url,
+            "original_metadata": detection_result.metadata,
+            "extraction_method": "frontend_preprocessing"
+        });
+        detection_result.metadata = Some(social_metadata.to_string());
+        
+        Ok(detection_result)
+    });
+    
+    match result {
+        Some(Ok(mut detection_result)) => {
+            let processing_time = (time() - start_time) / 1_000_000;
+            detection_result.processing_time_ms = processing_time;
+            Ok(detection_result)
+        },
+        Some(Err(e)) => Err(format!("Social media analysis failed: {}", e)),
+        None => Err("Model not initialized".to_string()),
+    }
+}
+
+// Validate social media URL format
+fn validate_social_media_url(url: &str, platform: &SocialMediaPlatform) -> Result<(), String> {
+    match platform {
+        SocialMediaPlatform::YouTube => {
+            if !url.contains("youtube.com") && !url.contains("youtu.be") {
+                return Err("Invalid YouTube URL format".to_string());
+            }
+        },
+        SocialMediaPlatform::Instagram => {
+            if !url.contains("instagram.com") {
+                return Err("Invalid Instagram URL format".to_string());
+            }
+        },
+        SocialMediaPlatform::TikTok => {
+            if !url.contains("tiktok.com") {
+                return Err("Invalid TikTok URL format".to_string());
+            }
+        },
+        SocialMediaPlatform::Twitter => {
+            if !url.contains("twitter.com") && !url.contains("x.com") {
+                return Err("Invalid Twitter/X URL format".to_string());
+            }
+        },
+        SocialMediaPlatform::Facebook => {
+            if !url.contains("facebook.com") && !url.contains("fb.com") {
+                return Err("Invalid Facebook URL format".to_string());
+            }
+        },
+        SocialMediaPlatform::Other(_) => {
+            // Basic URL validation for other platforms
+            if !url.starts_with("http://") && !url.starts_with("https://") {
+                return Err("URL must start with http:// or https://".to_string());
+            }
+        },
+    }
+    Ok(())
+}
+
 #[query]
 pub fn get_model_info() -> ModelInfo {
     ModelInfo {
@@ -74,6 +158,12 @@ pub fn get_model_info() -> ModelInfo {
             "avi".to_string(),
             "mov".to_string(),
             "webm".to_string(),
+            // Social media platforms
+            "youtube".to_string(),
+            "instagram".to_string(),
+            "tiktok".to_string(),
+            "twitter".to_string(),
+            "facebook".to_string(),
         ],
         max_file_size_mb: MAX_FILE_SIZE_VIDEO_MB,
         confidence_threshold: MODEL_CONFIDENCE_THRESHOLD,

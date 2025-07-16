@@ -9,6 +9,7 @@ VeriChain is a decentralized platform that leverages AI for deepfake detection i
 ## Features
 
 - **Real-time Deepfake Detection**: Advanced AI model for image and video analysis
+- **Social Media URL Analysis**: Direct analysis of YouTube, Instagram, TikTok, Twitter, and Facebook content
 - **Blockchain Verification**: Immutable detection records on ICP
 - **Multiple Media Formats**: Support for JPG, PNG, MP4, WebM, and more
 - **Batch Processing**: Premium users can analyze multiple files simultaneously
@@ -201,6 +202,66 @@ Response:
 - **Premium Users**: 1000 analyses per month + batch processing
 - **API Access**: Premium subscription required
 
+## Social Media Analysis
+
+VeriChain supports direct analysis of social media content by URL. Simply paste a URL from supported platforms:
+
+### Supported Platforms
+
+- **YouTube**: Videos, Shorts, Live streams
+- **Instagram**: Posts, Reels, IGTV
+- **TikTok**: Short videos, Live streams
+- **Twitter/X**: Video posts
+- **Facebook**: Video posts
+- **Vimeo**: All video content
+- **Dailymotion**: All video content
+
+### How It Works
+
+1. **URL Input**: Paste a social media URL in the frontend
+2. **Video Processing**: Platform-specific video extraction and frame sampling
+3. **AI Analysis**: Each frame is analyzed for deepfake patterns
+4. **Results**: Confidence scores and detailed analysis per frame
+5. **Blockchain Recording**: Results are immutably stored on ICP
+
+### Usage Examples
+
+```bash
+# Frontend Interface
+1. Open http://localhost:3000
+2. Click "Social Media URL" tab
+3. Paste URL (e.g., https://www.youtube.com/watch?v=example)
+4. Click "Analyze Video"
+
+# API Usage (Backend)
+dfx canister call ai_canister analyze_social_media '(
+  record {
+    url = "https://www.youtube.com/watch?v=example";
+    platform = variant { YouTube };
+    frames = vec { vec {255:nat8; 216:nat8; 255:nat8; 224:nat8} };
+    metadata = opt "Sample analysis"
+  }
+)'
+```
+
+### Testing Social Media Workflow
+
+```bash
+# Run comprehensive social media tests
+make test-social-media
+
+# Test individual components
+dfx canister call ai_canister get_model_info  # Check supported platforms
+dfx canister call ai_canister health_check    # Verify backend status
+```
+
+### Production Considerations
+
+- **Video Download Service**: Production deployments require a backend service with `yt-dlp` for video extraction
+- **Rate Limiting**: Implement appropriate rate limits for social media API calls
+- **Privacy**: Frame extraction happens locally when possible; only frames are sent to analysis
+- **Caching**: Consider implementing video caching for repeated analyses
+
 ## Development
 
 ### Available Commands
@@ -233,6 +294,7 @@ make test-health             # Quick health check
 make test-model              # Test model integrity
 make test-performance        # Performance testing
 make test-error-recovery     # Error recovery testing
+make test-social-media       # Social media workflow testing
 make integration-test        # Full integration test
 make qa-suite                # Complete QA test suite
 ```
