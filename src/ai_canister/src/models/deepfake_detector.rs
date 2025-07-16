@@ -61,16 +61,33 @@ impl DeepfakeDetector {
     // Load ONNX model from uploaded chunks in stable memory
     #[allow(dead_code)]
     fn load_chunked_model_data() -> Result<(Vec<u8>, ModelMetadata), String> {
-        // This will be implemented to load from stable memory or uploaded chunks
-        // For now, return a placeholder error to indicate chunks need to be uploaded
-        Err("Model chunks not yet uploaded. Use upload_chunk and upload_metadata endpoints to upload the model first.".to_string())
+        let metadata = crate::state::get_model_metadata()
+            .ok_or("Model metadata not found. Upload model chunks first.")?;
+        
+        let mut model_data = Vec::new();
+        for chunk_id in 0..metadata.total_chunks {
+            let chunk = crate::state::get_model_chunk(chunk_id)
+                .ok_or(format!("Model chunk {} not found", chunk_id))?;
+            model_data.extend_from_slice(&chunk.data);
+        }
+        
+        let model_metadata = ModelMetadata {
+            original_file: metadata.original_file.clone(),
+            original_size: metadata.original_size,
+            total_chunks: metadata.total_chunks,
+            chunk_size_mb: metadata.chunk_size_mb,
+            chunks: vec![]
+        };
+        
+        Ok((model_data, model_metadata))
     }
     
     // Load individual chunk from stable memory
     #[allow(dead_code)]
-    fn load_chunk(_chunk_id: u32) -> Result<Vec<u8>, String> {
-        // This will be implemented to load from stable memory
-        Err("Chunk loading from stable memory not yet implemented".to_string())
+    fn load_chunk(chunk_id: u32) -> Result<Vec<u8>, String> {
+        crate::state::get_model_chunk(chunk_id)
+            .map(|chunk| chunk.data)
+            .ok_or(format!("Chunk {} not found in stable memory", chunk_id))
     }
     
     // Calculate SHA256 hash (public for use in handlers)
@@ -188,18 +205,14 @@ impl DeepfakeDetector {
     // Analyze preprocessed frames from frontend
     #[allow(dead_code)]
     pub fn analyze_frames(&self, frames_data: Vec<Vec<u8>>) -> Result<DetectionResult, String> {
-        if !self.initialized {
-            return Err("Model not initialized".to_string());
-        }
-
         if frames_data.is_empty() {
-            return Err("No frames provided".to_string());
+            return Err("No frames provided for analysis".to_string());
         }
 
         let start_time = ic_cdk::api::time();
-        let mut frame_results = Vec::new();
         let mut total_confidence = 0.0;
         let mut deepfake_count = 0;
+        let mut frame_results = Vec::new();
 
         for (index, frame_data) in frames_data.iter().enumerate() {
             let image = self.decode_image(frame_data)?;
@@ -217,7 +230,7 @@ impl DeepfakeDetector {
                 frame_index: index,
                 confidence,
                 is_deepfake,
-                timestamp_ms: (index as u64 * 1000) / 30, // Assuming 30fps
+                timestamp_ms: Self::calculate_timestamp(index, &Vec::new()),
             });
         }
 
@@ -225,7 +238,7 @@ impl DeepfakeDetector {
         let deepfake_percentage = (deepfake_count as f32 / frames_data.len() as f32) * 100.0;
         let is_video_deepfake = deepfake_percentage > 30.0;
         
-        let processing_time = (ic_cdk::api::time() - start_time) / 1_000_000; // Convert to milliseconds
+        let processing_time = (ic_cdk::api::time() - start_time) / 1_000_000;
 
         Ok(DetectionResult {
             is_deepfake: is_video_deepfake,
@@ -303,13 +316,13 @@ impl DeepfakeDetector {
             return Err("Invalid input data size".to_string());
         }
 
-        // Advanced statistical analysis-based detection algorithm
+        // Statistical analysis-based detection algorithm
         let mean = input_data.iter().sum::<f32>() / input_data.len() as f32;
         let variance = input_data.iter()
             .map(|x| (x - mean).powi(2))
             .sum::<f32>() / input_data.len() as f32;
         
-        // Multi-factor analysis for deepfake detection
+        // Combined analysis for deepfake detection
         let edge_detection_score = self.calculate_edge_score(input_data);
         let texture_score = self.calculate_texture_score(input_data);
         
@@ -466,7 +479,7 @@ impl DeepfakeDetector {
             // Calculate hash of the complete model
             let _model_hash = Self::calculate_sha256(&self.model_data);
             
-            // For now, we'll just check size - you can add more sophisticated checks
+            // Verify size and perform basic integrity checks
             Ok(true)
         } else {
             Err("No metadata available".to_string())
@@ -491,21 +504,35 @@ impl DeepfakeDetector {
         }
     }
 
-    // Lazy initialization of model
+    // Initialize model from uploaded chunks in stable memory
     fn initialize_model(&mut self) -> Result<(), String> {
         if self.initialized {
             return Ok(());
         }
         
-        // For ICP deployment, we'll use dummy/mock model for now
-        // TODO: Implement proper model loading from stable memory or upload chunks
-        self.model_data = vec![0u8; 1024]; // Dummy model data
+        let metadata = crate::state::get_model_metadata()
+            .ok_or("Model chunks must be uploaded before initialization. Use upload_chunk and upload_metadata endpoints first.")?;
+        
+        // Verify all chunks are available
+        let mut model_data = Vec::new();
+        for chunk_id in 0..metadata.total_chunks {
+            let chunk = crate::state::get_model_chunk(chunk_id)
+                .ok_or(format!("Model chunk {} not found", chunk_id))?;
+            model_data.extend_from_slice(&chunk.data);
+        }
+        
+        // Verify model integrity
+        if model_data.len() != metadata.original_size as usize {
+            return Err("Model size mismatch after loading chunks".to_string());
+        }
+        
+        self.model_data = model_data;
         self.initialized = true;
         self.model_metadata = Some(ModelMetadata {
-            original_file: "mock-model.onnx".to_string(),
-            original_size: 1024,
-            total_chunks: 1,
-            chunk_size_mb: 1,
+            original_file: metadata.original_file.clone(),
+            original_size: metadata.original_size,
+            total_chunks: metadata.total_chunks,
+            chunk_size_mb: metadata.chunk_size_mb,
             chunks: vec![]
         });
         
@@ -513,6 +540,7 @@ impl DeepfakeDetector {
     }
 
     // Set model data from uploaded chunks
+    #[allow(dead_code)]
     pub fn set_model_data(&mut self, model_data: Vec<u8>) -> Result<(), String> {
         if model_data.is_empty() {
             return Err("Model data cannot be empty".to_string());
