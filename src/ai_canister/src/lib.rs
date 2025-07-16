@@ -39,4 +39,8 @@ pub use handlers::{
     health_check,
     verify_model_integrity,
     get_usage_info,
+    upload_model_chunk,
+    upload_model_metadata,
+    get_upload_status,
+    initialize_model_from_chunks,
 };

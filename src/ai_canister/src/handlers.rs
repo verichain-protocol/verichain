@@ -124,3 +124,116 @@ pub fn get_usage_info() -> UsageInfo {
         resets_at: usage.last_reset + (30 * 24 * 60 * 60 * 1_000_000_000), // 30 days in nanoseconds
     }
 }
+
+// Model chunk upload endpoints
+#[update]
+pub async fn upload_model_chunk(chunk_id: u32, chunk_data: Vec<u8>, chunk_hash: String) -> Result<String, String> {
+    // Verify chunk hash
+    let calculated_hash = crate::models::deepfake_detector::DeepfakeDetector::calculate_sha256(&chunk_data);
+    if calculated_hash != chunk_hash {
+        return Err(format!("Chunk hash verification failed. Expected: {}, Got: {}", chunk_hash, calculated_hash));
+    }
+    
+    // Store chunk in stable memory
+    let chunk = state::ModelChunk {
+        chunk_id,
+        data: chunk_data,
+        hash: chunk_hash,
+    };
+    
+    state::store_model_chunk(chunk)?;
+    
+    // Update metadata to mark this chunk as uploaded
+    if let Some(mut metadata) = state::get_model_metadata() {
+        if !metadata.uploaded_chunks.contains(&chunk_id) {
+            metadata.uploaded_chunks.push(chunk_id);
+            metadata.uploaded_chunks.sort();
+            state::store_model_metadata(metadata);
+        }
+    }
+    
+    Ok(format!("Chunk {} uploaded successfully", chunk_id))
+}
+
+#[update]
+pub async fn upload_model_metadata(
+    original_file: String,
+    original_size: u64,
+    total_chunks: u32,
+    chunk_size_mb: u32
+) -> Result<String, String> {
+    let metadata = state::StoredModelMetadata {
+        original_file,
+        original_size,
+        total_chunks,
+        chunk_size_mb,
+        uploaded_chunks: Vec::new(),
+    };
+    
+    state::store_model_metadata(metadata);
+    Ok("Model metadata uploaded successfully".to_string())
+}
+
+#[query]
+pub fn get_upload_status() -> UploadStatus {
+    if let Some(metadata) = state::get_model_metadata() {
+        UploadStatus {
+            total_chunks: metadata.total_chunks,
+            uploaded_chunks: metadata.uploaded_chunks.len() as u32,
+            missing_chunks: (0..metadata.total_chunks)
+                .filter(|id| !metadata.uploaded_chunks.contains(id))
+                .collect(),
+            is_complete: state::are_all_chunks_uploaded(),
+            original_size_mb: metadata.original_size as f64 / (1024.0 * 1024.0),
+        }
+    } else {
+        UploadStatus {
+            total_chunks: 0,
+            uploaded_chunks: 0,
+            missing_chunks: Vec::new(),
+            is_complete: false,
+            original_size_mb: 0.0,
+        }
+    }
+}
+
+#[update]
+pub async fn initialize_model_from_chunks() -> Result<String, String> {
+    if !state::are_all_chunks_uploaded() {
+        return Err("Not all chunks have been uploaded yet".to_string());
+    }
+    
+    // Start streaming initialization
+    state::with_detector_mut(|detector| {
+        detector.start_streaming_initialization()
+    }).ok_or("Detector not available".to_string())??;
+    
+    Ok("Model streaming initialization started successfully".to_string())
+}
+
+#[update]
+pub async fn continue_model_initialization(batch_size: Option<u32>) -> Result<String, String> {
+    let batch_size = batch_size.unwrap_or(10); // Process 10 chunks at a time by default
+    
+    let result = state::with_detector_mut(|detector| {
+        detector.continue_streaming_initialization(batch_size)
+    }).ok_or("Detector not available".to_string())?;
+    
+    match result {
+        Ok((completed, total)) => {
+            if completed == total {
+                Ok(format!("Model initialization completed successfully! Processed {}/{} chunks", completed, total))
+            } else {
+                Ok(format!("Model initialization in progress: {}/{} chunks processed", completed, total))
+            }
+        },
+        Err(e) => Err(e)
+    }
+}
+
+#[query]
+pub async fn get_model_initialization_status() -> Result<crate::types::InitializationStatus, String> {
+    state::with_detector(|detector| {
+        detector.get_initialization_status()
+    }).ok_or("Detector not available".to_string())?
+}
