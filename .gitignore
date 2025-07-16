@@ -1,76 +1,95 @@
-# Various IDEs and Editors
+# VeriChain .gitignore - Blockchain Project
+
+# IDEs and Editors
 .vscode/
 .idea/
-**/*~
 *.swp
 *.swo
+*~
 
-# OS-specific temporary files
+# OS-specific files
 .DS_Store
-**/.DS_Store
 Thumbs.db
 
 # DFX temporary files
 .dfx/
 
-# Auto-generated files
+# Auto-generated declarations  
 **/declarations/
 
 # Rust build artifacts
 target/
-Cargo.lock
 
 # Frontend build artifacts and dependencies
 node_modules/
 dist/
-.svelte-kit/
 build/
 .parcel-cache/
-package-lock.json
 
 # Environment variables
-# Ignore all .env files, but allow committing an example template
-.env*
-!/.env.example
+.env
+.env.local
+.env.development
+.env.staging
+.env.production
+# Allow example templates
+!.env.example
 
-# Motoko package manager cache
+# Motoko package manager
 .mops/
 mops.lock
 .vessel/
 
-# AI model binaries
+# AI model binaries (large files) - downloaded automatically
 src/ai_canister/assets/*.onnx
 src/ai_canister/assets/*.bin
 src/ai_canister/assets/*.pt
 src/ai_canister/assets/*.h5
 src/ai_canister/assets/*.tflite
+# Keep metadata and JSON files
+!src/ai_canister/assets/model_metadata.json
+!src/ai_canister/assets/*.json
 
-# Log files and host-specific artifacts
+# Logs and temporary files
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 nohup.out
-.npm
 
 # Cache directories
 .cache/
-.cargo/
+.cargo/registry/cache/
 .rustup/
+.npm/
 
-# Testing
+# Testing artifacts
 coverage/
 .nyc_output/
 junit.xml
-
-# Documentation build
-docs/build/
-site/
+test-results/
 
 # Backup files
 *.bak
 *.tmp
 *.temp
 
-# Docker
-.dockerignore
+# Documentation build artifacts  
+docs/build/
+site/
+
+# Runtime artifacts
+*.pid
+*.seed
+*.pid.lock
+
+# Distribution packages
+*.tar.gz
+verichain-dist.tar.gz
+
+# macOS specific
+.AppleDouble
+.LSOverride
+
+# Docker volumes and cache
+.docker/
