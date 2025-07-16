@@ -15,6 +15,13 @@ export default defineConfig({
       global: "globalThis",
     },
   },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: 'modern-compiler'
+      }
+    }
+  },
   server: {
     proxy: {
       "/api": {
