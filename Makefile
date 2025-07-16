@@ -1,6 +1,8 @@
 # VeriChain Makefile - Build and Development Tools
 .PHONY: help setup install model-setup build deploy clean start stop dev all test reset
 .PHONY: docker-build docker-dev docker-stop docker-clean
+.PHONY: upload-model setup-model-complete stream-init-demo test-performance test-error-recovery integration-test
+.PHONY: full-setup qa-suite
 .DEFAULT_GOAL := help
 
 help: ## Show this help message
@@ -69,7 +71,7 @@ dev: start deploy ## Start complete development environment
 	@echo "Frontend: http://localhost:4943"
 	@echo "Candid UI: http://localhost:4943/?canisterId=$$(dfx canister id __Candid_UI)"
 
-# Testing
+# Testing and Model Operations
 test: ## Run all tests
 	@echo "🧪 Running tests..."
 	@cargo test
@@ -84,6 +86,45 @@ test-health: ## Quick health check
 test-model: ## Test model integrity
 	@echo "🔍 Testing model integrity..."
 	@dfx canister call ai_canister verify_model_integrity
+
+# Model Upload and Initialization
+upload-model: ## Upload model chunks to AI canister
+	@echo "📤 Uploading model to canister..."
+	@./scripts/upload-model.sh
+	@echo "✅ Model upload completed."
+
+setup-model-complete: ## Complete model upload and streaming initialization
+	@echo "🚀 Running complete model setup..."
+	@./scripts/setup-model-complete.sh
+	@echo "✅ Complete model setup finished."
+
+stream-init-demo: ## Demo streaming model initialization
+	@echo "🚀 Running streaming initialization demo..."
+	@./scripts/demo-streaming-init.sh
+	@echo "✅ Demo completed."
+
+# Performance and Quality Assurance
+test-performance: ## Test streaming initialization performance
+	@echo "⚡ Running performance tests..."
+	@./scripts/test-performance-advanced.sh
+	@echo "✅ Performance testing completed."
+
+test-error-recovery: ## Test error recovery scenarios
+	@echo "🛡️ Running error recovery tests..."
+	@./scripts/test-error-recovery.sh
+	@echo "✅ Error recovery testing completed."
+
+integration-test: ## Run comprehensive integration test
+	@echo "🎯 Running final integration test..."
+	@./scripts/final-integration-test.sh
+	@echo "✅ Integration testing completed."
+
+# Combined workflows
+full-setup: setup setup-model-complete ## Complete setup with model upload and initialization
+	@echo "🎉 VeriChain fully ready with initialized model!"
+
+qa-suite: test-performance test-error-recovery integration-test ## Run complete QA test suite
+	@echo "🏆 All QA tests completed successfully!"
 
 # Maintenance
 clean: ## Clean all build artifacts

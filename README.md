@@ -37,112 +37,83 @@ make setup
 
 # Start development environment
 make dev
+
+# Full setup with model upload and initialization (recommended for production)
+make full-setup
 ```
 
-### Manual Setup (Alternative)
+### Quick Setup Options
 
 ```bash
-# Install dependencies
+# Minimal setup (dependencies only)
 make install
 
-# Download and setup AI model
+# Download and setup AI model chunks locally
 make model-setup
 
-# Build project
+# Build project only
 make build
 
-# Deploy locally
+# Deploy to local network
 make deploy
 ```
 
-## Model Upload and Streaming Initialization
+## Model Deployment
 
-VeriChain uses an advanced chunked upload and streaming initialization system to handle large AI models efficiently on Internet Computer Protocol.
+VeriChain uses an advanced chunked upload and streaming initialization system for efficient large AI model deployment on Internet Computer Protocol.
 
-### Process Overview
+### Quick Model Setup
 
-1. **Model Chunking**: The 327MB AI model is split into 410 chunks of ~0.8MB each
-2. **Chunked Upload**: Each chunk is uploaded individually with hash verification
-3. **Stable Storage**: Chunks are stored in stable memory for persistence across canister upgrades
-4. **Streaming Initialization**: Model is initialized in configurable batches to avoid instruction limits
+```bash
+# Complete model upload and initialization (recommended)
+make setup-model-complete
 
-### Model Upload to Canister
+# Or step-by-step approach:
+make upload-model           # Upload chunks only
+make stream-init-demo       # Interactive streaming initialization demo
+```
 
-After deployment, the AI model needs to be uploaded to the canister in chunks:
+### Manual Model Operations
 
 ```bash
 # Upload model chunks to AI canister
 ./scripts/upload-model.sh
 
-# Check upload progress
-dfx canister call ai_canister get_upload_status
+# Start streaming initialization
+dfx canister call ai_canister initialize_model_from_chunks
 
-# Monitor upload in real-time (shows progress percentage)
-watch -n 2 "dfx canister call ai_canister get_upload_status"
-```
-
-### Streaming Model Initialization
-
-Once upload is complete, use the streaming initialization for optimal performance:
-
-```bash
-# Start streaming model initialization (optimized for large models)
-dfx canister call ai_canister start_streaming_initialization
-
-# Continue model initialization in batches (process 10 chunks at a time)
+# Continue in batches (repeat until complete)
 dfx canister call ai_canister continue_model_initialization '(opt 10)'
 
-# Check initialization progress
+# Check progress
 dfx canister call ai_canister get_model_initialization_status
 
-# Repeat the continue command until initialization is complete
-# The process will automatically finalize when all chunks are processed
-
-# Verify model is ready
-dfx canister call ai_canister health_check
+# Verify model integrity
+dfx canister call ai_canister verify_model_integrity
 ```
 
-### Automated Streaming Demo
+### Process Overview
 
-For automated streaming initialization testing:
+1. **Model Chunking**: 327MB AI model → 410 chunks of ~0.8MB each
+2. **Chunked Upload**: Individual upload with hash verification
+3. **Stable Storage**: Persistent storage across canister upgrades  
+4. **Streaming Initialization**: Configurable batch processing to avoid instruction limits
+
+### Performance Testing
 
 ```bash
-# Run demo with default batch size (10)
-./scripts/demo-streaming-init.sh
+# Run comprehensive performance analysis
+make test-performance
 
-# Custom batch size
-./scripts/demo-streaming-init.sh 15
+# Test error recovery scenarios
+make test-error-recovery
+
+# Complete integration test suite
+make integration-test
+
+# Run all QA tests
+make qa-suite
 ```
-
-### Performance Optimization
-
-Test different batch sizes to find optimal performance:
-
-```bash
-# Run comprehensive performance tests
-./scripts/test-performance-advanced.sh
-
-# Analyze existing results only
-./scripts/test-performance-advanced.sh --analyze-only results_file.csv
-```
-
-### Frontend Integration
-
-The frontend includes a real-time **Model Status Panel** that shows:
-- Upload progress with visual progress bars
-- Initialization status and progress
-- Activity logs with timestamps
-- Control buttons for manual operations
-- Automatic refresh with configurable intervals
-
-**Note**: The model upload and initialization process:
-- Splits the 327MB model into 410 chunks of ~0.8MB each
-- Uploads chunks individually with hash verification
-- Stores chunks in stable memory for persistence across upgrades
-- Uses streaming initialization to avoid instruction limit errors
-- Processes chunks in configurable batches (default: 10 chunks per call)
-- Requires successful upload of all chunks before model initialization
-- Provides real-time monitoring through both CLI and web interface
 
 ## Architecture
 
@@ -234,27 +205,52 @@ Response:
 
 ### Available Commands
 
+**Main Commands:**
 ```bash
-make help          # Show available commands
-make setup         # Complete project setup
-make install       # Install dependencies only
-make model-setup   # Download/chunk AI model
-make build         # Build for production
-make dev-build     # Build for development (faster)
-make start         # Start DFX replica
-make stop          # Stop DFX replica
-make deploy        # Deploy to local network
-make dev           # Start complete development environment
-make test          # Run all tests
-make test-health   # Quick health check
-make test-model    # Test model integrity
-make clean         # Clean build artifacts
-make reset         # Reset and rebuild everything
-make status        # Show project status
-make check         # Check system requirements
-make logs          # Show canister logs
-make update        # Update all dependencies
-make package       # Package for distribution
+make help                    # Show available commands
+make setup                   # Complete project setup
+make install                 # Install dependencies only
+make model-setup             # Download/chunk AI model
+make build                   # Build for production
+make dev-build               # Build for development (faster)
+make start                   # Start DFX replica
+make stop                    # Stop DFX replica
+make deploy                  # Deploy to local network
+make dev                     # Start complete development environment
+```
+
+**Model Operations:**
+```bash
+make upload-model            # Upload model chunks to canister
+make setup-model-complete    # Complete model upload and initialization
+make stream-init-demo        # Interactive streaming initialization demo
+```
+
+**Testing and QA:**
+```bash
+make test                    # Run all tests
+make test-health             # Quick health check
+make test-model              # Test model integrity
+make test-performance        # Performance testing
+make test-error-recovery     # Error recovery testing
+make integration-test        # Full integration test
+make qa-suite                # Complete QA test suite
+```
+
+**Maintenance:**
+```bash
+make clean                   # Clean build artifacts
+make reset                   # Reset and rebuild everything
+make status                  # Show project status
+make check                   # Check system requirements
+make logs                    # Show canister logs
+make update                  # Update all dependencies
+```
+
+**Combined Workflows:**
+```bash
+make full-setup              # Complete setup with model deployment
+make all                     # Setup, deployment, and testing
 ```
 
 ### Docker Support
@@ -311,14 +307,16 @@ DFX_NETWORK=local
 RUST_BACKTRACE=1
 NODE_ENV=development
 
-# AI Model Configuration
-AI_MODEL_CHUNK_SIZE_MB=15
-MAX_MODEL_SIZE_MB=100
+# Canister IDs (auto-generated by dfx deploy)
+# CANISTER_ID_LOGIC_CANISTER=
+# CANISTER_ID_INTERNET_IDENTITY=
+# CANISTER_ID_FRONTEND=
+# CANISTER_ID_AI_CANISTER=
 ```
 
 ### Model Configuration
 
-The AI model is automatically downloaded and chunked during setup. Configuration in `src/ai_canister/src/types/api_types.rs`:
+AI model settings are defined in the Rust codebase at `src/ai_canister/src/types/api_types.rs`:
 
 ```rust
 pub const MODEL_INPUT_SIZE: u32 = 224;
@@ -327,26 +325,8 @@ pub const MAX_FILE_SIZE_IMAGE_MB: u32 = 10;
 pub const MAX_FILE_SIZE_VIDEO_MB: u32 = 50;
 ```
 
-### Advanced Model Tools
-
-For manual model processing, use the Python chunker:
-
-```bash
-# Chunk a large model file
-python3 tools/model_chunker.py chunk model.onnx src/ai_canister/assets/
-
-# Verify chunk integrity
-python3 tools/model_chunker.py verify src/ai_canister/assets/
-
-# Reconstruct model from chunks
-python3 tools/model_chunker.py reconstruct src/ai_canister/assets/ reconstructed.onnx
-```
-
-### Build Configuration
-
-Environment-specific builds in `scripts/build.sh`:
-
-- **Development**: Fast builds with debug symbols
+Build configuration is handled automatically by `scripts/build.sh`:
+- **Development**: Fast builds with debug symbols  
 - **Production**: Release builds with compression
 
 ## Performance
@@ -354,16 +334,17 @@ Environment-specific builds in `scripts/build.sh`:
 ### Benchmark Results
 
 - **Image Analysis**: ~200-500ms per image
-- **Video Analysis**: ~2-5s per video (depending on length)
-- **Batch Processing**: Parallel processing for premium users
+- **Video Analysis**: ~2-5s per video (length dependent)
 - **Memory Usage**: <512MB per canister instance
+- **Concurrent Requests**: 100 per canister
+- **Storage**: Unlimited (blockchain-based)
 
 ### Resource Limits
 
 - **Max Image Size**: 10MB
-- **Max Video Size**: 50MB
-- **Concurrent Requests**: 100 per canister
-- **Storage**: Unlimited (blockchain-based)
+- **Max Video Size**: 50MB  
+- **Model Size**: 327MB (chunked for deployment)
+- **Streaming Batch Size**: 5-30 chunks (configurable)
 
 ## Security
 
@@ -375,93 +356,70 @@ Environment-specific builds in `scripts/build.sh`:
 
 ## Troubleshooting
 
+### Quick Diagnostics
+
+```bash
+make status                  # Check overall project status
+make check                   # Verify system requirements
+make test-health             # Quick canister health check
+dfx canister status ai_canister  # Detailed canister status
+```
+
 ### Common Issues
 
-**Model Upload Issues:**
+**Model Upload/Initialization:**
 ```bash
-# Check canister cycles before upload
+# Check canister cycles before operations
 dfx canister status ai_canister
 
 # Add cycles if needed
 dfx ledger fabricate-cycles --amount 100000000 --canister ai_canister
 
-# Resume incomplete upload
-./scripts/upload-model.sh
-```
+# Resume operations
+make setup-model-complete
 
-**Streaming Initialization Issues:**
-```bash
-# Check current initialization status
+# Check current status
 dfx canister call ai_canister get_model_initialization_status
-
-# Restart streaming if needed
-dfx canister call ai_canister start_streaming_initialization
-
-# Continue with smaller batch size if hitting limits
-dfx canister call ai_canister continue_model_initialization '(opt 5)'
-
-# Test performance with different batch sizes
-./scripts/test-performance-advanced.sh
 ```
 
-**Frontend Model Status Panel:**
-- If status not updating: Check browser console for errors
-- If buttons not working: Verify canister IDs in declarations
-- If progress seems stuck: Check canister cycles and memory usage
-
-**Build Errors:**
+**Build and Deployment:**
 ```bash
-# Clean and rebuild
-make clean
-make setup
+# Clean rebuild
+make clean && make setup
+
+# Reset DFX environment  
+make stop && make start && make deploy
 ```
 
-**DFX Connection Issues:**
+**Performance Issues:**
 ```bash
-# Reset local replica
-make stop
-make start
+# Test optimal batch sizes
+make test-performance
+
+# Run error recovery tests
+make test-error-recovery
+
+# Full integration verification
+make integration-test
 ```
 
-**Check System Status:**
+**Frontend Issues:**
+- Model Status Panel not updating: Check browser console and verify canister IDs
+- Buttons not working: Verify canister deployment and cycles
+- Progress stuck: Check canister memory and cycles usage
+
+### Monitoring and Logs
+
 ```bash
-make status
-make check
-```
+# Real-time upload monitoring
+watch -n 2 "dfx canister call ai_canister get_upload_status"
 
-**Docker Issues:**
-```bash
-# Reset Docker environment
-make docker-clean
-make docker-dev
-```
+# Real-time initialization monitoring  
+watch -n 2 "dfx canister call ai_canister get_model_initialization_status"
 
-### Performance Troubleshooting
+# Show canister logs
+make logs
 
-**Upload Too Slow:**
-- Check internet connection
-- Verify canister has sufficient cycles
-- Monitor with: `watch -n 2 "dfx canister call ai_canister get_upload_status"`
-
-**Initialization Failing:**
-- Try smaller batch sizes (5-10 chunks)
-- Check canister memory limits
-- Verify all chunks uploaded successfully
-
-**Out of Cycles Errors:**
-```bash
-# Add more cycles
-dfx ledger fabricate-cycles --amount 200000000 --canister ai_canister
-
-# Check cycle usage patterns
-dfx canister status ai_canister
-```
-
-**Memory Issues:**
-```bash
-# Check memory usage
-dfx canister status ai_canister
-
-# Monitor during operations
-watch -n 2 "dfx canister status ai_canister | grep Memory"
+# Monitor cycles and memory
+watch -n 5 "dfx canister status ai_canister | grep -E 'Balance:|Memory'"
 ```
