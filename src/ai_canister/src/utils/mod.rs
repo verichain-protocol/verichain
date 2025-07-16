@@ -1,11 +1,5 @@
-// VeriChain AI Canister - Utilities
-// Helper functions and data processors
+// VeriChain AI Canister - Utilities Module
+// Core utility functions for the AI canister
 
-pub mod media_processor;
-pub mod social_media_parser;
-
-// Re-export commonly used utilities
-#[allow(unused_imports)]
-pub use media_processor::MediaProcessor;
-#[allow(unused_imports)]
-pub use social_media_parser::SocialMediaParser;
+// Currently no active utility modules
+// Add utility modules here as needed
