@@ -10,11 +10,9 @@ export default defineConfig({
   build: {
     emptyOutDir: true,
   },
-  optimizeDeps: {
-    esbuildOptions: {
-      define: {
-        global: "globalThis",
-      },
+  esbuild: {
+    define: {
+      global: "globalThis",
     },
   },
   server: {
