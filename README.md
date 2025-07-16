@@ -55,6 +55,17 @@ make build
 make deploy
 ```
 
+## Model Upload and Streaming Initialization
+
+VeriChain uses an advanced chunked upload and streaming initialization system to handle large AI models efficiently on Internet Computer Protocol.
+
+### Process Overview
+
+1. **Model Chunking**: The 327MB AI model is split into 410 chunks of ~0.8MB each
+2. **Chunked Upload**: Each chunk is uploaded individually with hash verification
+3. **Stable Storage**: Chunks are stored in stable memory for persistence across canister upgrades
+4. **Streaming Initialization**: Model is initialized in configurable batches to avoid instruction limits
+
 ### Model Upload to Canister
 
 After deployment, the AI model needs to be uploaded to the canister in chunks:
@@ -66,8 +77,17 @@ After deployment, the AI model needs to be uploaded to the canister in chunks:
 # Check upload progress
 dfx canister call ai_canister get_upload_status
 
+# Monitor upload in real-time (shows progress percentage)
+watch -n 2 "dfx canister call ai_canister get_upload_status"
+```
+
+### Streaming Model Initialization
+
+Once upload is complete, use the streaming initialization for optimal performance:
+
+```bash
 # Start streaming model initialization (optimized for large models)
-dfx canister call ai_canister initialize_model_from_chunks
+dfx canister call ai_canister start_streaming_initialization
 
 # Continue model initialization in batches (process 10 chunks at a time)
 dfx canister call ai_canister continue_model_initialization '(opt 10)'
@@ -82,6 +102,39 @@ dfx canister call ai_canister get_model_initialization_status
 dfx canister call ai_canister health_check
 ```
 
+### Automated Streaming Demo
+
+For automated streaming initialization testing:
+
+```bash
+# Run demo with default batch size (10)
+./scripts/demo-streaming-init.sh
+
+# Custom batch size
+./scripts/demo-streaming-init.sh 15
+```
+
+### Performance Optimization
+
+Test different batch sizes to find optimal performance:
+
+```bash
+# Run comprehensive performance tests
+./scripts/test-performance-advanced.sh
+
+# Analyze existing results only
+./scripts/test-performance-advanced.sh --analyze-only results_file.csv
+```
+
+### Frontend Integration
+
+The frontend includes a real-time **Model Status Panel** that shows:
+- Upload progress with visual progress bars
+- Initialization status and progress
+- Activity logs with timestamps
+- Control buttons for manual operations
+- Automatic refresh with configurable intervals
+
 **Note**: The model upload and initialization process:
 - Splits the 327MB model into 410 chunks of ~0.8MB each
 - Uploads chunks individually with hash verification
@@ -89,6 +142,7 @@ dfx canister call ai_canister health_check
 - Uses streaming initialization to avoid instruction limit errors
 - Processes chunks in configurable batches (default: 10 chunks per call)
 - Requires successful upload of all chunks before model initialization
+- Provides real-time monitoring through both CLI and web interface
 
 ## Architecture
 
@@ -323,11 +377,37 @@ Environment-specific builds in `scripts/build.sh`:
 
 ### Common Issues
 
-**Model Download Fails:**
+**Model Upload Issues:**
 ```bash
-# Check internet connection and retry
-make model-setup
+# Check canister cycles before upload
+dfx canister status ai_canister
+
+# Add cycles if needed
+dfx ledger fabricate-cycles --amount 100000000 --canister ai_canister
+
+# Resume incomplete upload
+./scripts/upload-model.sh
 ```
+
+**Streaming Initialization Issues:**
+```bash
+# Check current initialization status
+dfx canister call ai_canister get_model_initialization_status
+
+# Restart streaming if needed
+dfx canister call ai_canister start_streaming_initialization
+
+# Continue with smaller batch size if hitting limits
+dfx canister call ai_canister continue_model_initialization '(opt 5)'
+
+# Test performance with different batch sizes
+./scripts/test-performance-advanced.sh
+```
+
+**Frontend Model Status Panel:**
+- If status not updating: Check browser console for errors
+- If buttons not working: Verify canister IDs in declarations
+- If progress seems stuck: Check canister cycles and memory usage
 
 **Build Errors:**
 ```bash
@@ -356,29 +436,32 @@ make docker-clean
 make docker-dev
 ```
 
-## Contributing
+### Performance Troubleshooting
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+**Upload Too Slow:**
+- Check internet connection
+- Verify canister has sufficient cycles
+- Monitor with: `watch -n 2 "dfx canister call ai_canister get_upload_status"`
 
-### Code Standards
+**Initialization Failing:**
+- Try smaller batch sizes (5-10 chunks)
+- Check canister memory limits
+- Verify all chunks uploaded successfully
 
-- **Rust**: Use `cargo fmt` and `cargo clippy`
-- **JavaScript**: Use Prettier and ESLint
-- **Motoko**: Follow official style guide
-- **Documentation**: Update README for new features
+**Out of Cycles Errors:**
+```bash
+# Add more cycles
+dfx ledger fabricate-cycles --amount 200000000 --canister ai_canister
 
-## License
+# Check cycle usage patterns
+dfx canister status ai_canister
+```
 
-Copyright (c) 2025
+**Memory Issues:**
+```bash
+# Check memory usage
+dfx canister status ai_canister
 
--   Muhammad Rafly Ash Shiddiqi
--   Nickolas Quinn Budiyono
--   Christopher Robin Tanugroho
-
----
-
-**VeriChain** - Decentralized Deepfake Detection on Internet Computer Protocol
+# Monitor during operations
+watch -n 2 "dfx canister status ai_canister | grep Memory"
+```
