@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Demo script for streaming model initialization
+# This script demonstrates the new streaming initialization feature
+
+echo "🚀 VeriChain Streaming Model Initialization Demo"
+echo "================================================"
+
+echo ""
+echo "📊 Current Status:"
+echo "  Upload Status:"
+dfx canister call ai_canister get_upload_status | head -10
+echo ""
+echo "  Initialization Status:"
+dfx canister call ai_canister get_model_initialization_status
+
+echo ""
+echo "📝 This demo shows the new streaming initialization features:"
+echo ""
+echo "1. 🔧 initialize_model_from_chunks"
+echo "   - Starts the streaming initialization process"
+echo "   - Validates that all chunks are uploaded"
+echo "   - Sets up streaming state without loading all chunks at once"
+echo ""
+echo "2. 🔄 continue_model_initialization"
+echo "   - Processes chunks in configurable batches (default: 10)"
+echo "   - Avoids instruction limit exceeded errors (IC0522)"
+echo "   - Can be called repeatedly until initialization is complete"
+echo ""
+echo "3. 📈 get_model_initialization_status"
+echo "   - Tracks progress of streaming initialization"
+echo "   - Shows processed chunks, total chunks, and completion status"
+echo "   - Monitors memory usage and streaming state"
+echo ""
+echo "🎯 Usage Workflow:"
+echo "   1. Upload all model chunks (./scripts/upload-model.sh)"
+echo "   2. Start initialization: dfx canister call ai_canister initialize_model_from_chunks"
+echo "   3. Continue in batches: dfx canister call ai_canister continue_model_initialization '(opt 10)'"
+echo "   4. Check progress: dfx canister call ai_canister get_model_initialization_status"
+echo "   5. Repeat step 3 until initialization is complete"
+echo ""
+echo "✅ Benefits:"
+echo "   - Handles large models (327MB) without memory/instruction limits"
+echo "   - Configurable batch sizes for optimal performance"
+echo "   - Progress tracking and error handling"
+echo "   - Stable memory persistence across canister upgrades"
+echo ""
+echo "📋 To test with real model upload, run:"
+echo "   ./scripts/upload-model.sh"
+echo "   Then follow the workflow above."
