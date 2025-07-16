@@ -8,12 +8,10 @@ mod models;
 mod state;
 mod types;
 mod utils;
-mod upload_chunks;
 
 // Re-export public API
 pub use handlers::*;
 pub use types::*;
-pub use upload_chunks::*;
 
 #[init]
 fn init() {
@@ -43,4 +41,6 @@ pub use handlers::{
     upload_model_metadata,
     get_upload_status,
     initialize_model_from_chunks,
+    continue_model_initialization,
+    get_model_initialization_status,
 };

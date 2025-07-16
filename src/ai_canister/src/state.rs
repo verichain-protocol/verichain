@@ -12,6 +12,7 @@ use ic_stable_structures::{
 use candid::{CandidType, Deserialize};
 use crate::models::DeepfakeDetector;
 
+#[allow(dead_code)]
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 // Storable implementations for stable memory
@@ -156,6 +157,7 @@ pub fn are_all_chunks_uploaded() -> bool {
 }
 
 // Get all uploaded chunks for model reconstruction
+#[allow(dead_code)]
 pub fn get_all_model_chunks() -> Result<Vec<ModelChunk>, String> {
     let metadata = get_model_metadata()
         .ok_or("Model metadata not found")?;
@@ -172,13 +174,13 @@ pub fn get_all_model_chunks() -> Result<Vec<ModelChunk>, String> {
 }
 
 pub fn save_state() {
-    // State persistence implementation - to be added when needed
-    // This would serialize state to stable memory
+    // State is automatically persisted in stable memory
+    // No additional action needed
 }
 
 pub fn load_state() {
-    // State loading implementation - to be added when needed  
-    // This would deserialize state from stable memory
+    // State is automatically loaded from stable memory
+    // Reinitialize the canister
     initialize_canister();
 }
 
@@ -206,12 +208,7 @@ pub fn get_usage(user_id: &str) -> Option<UserUsage> {
     })
 }
 
-#[allow(dead_code)]
-pub fn update_usage(user_id: String, usage: UserUsage) {
-    USAGE_TRACKER.with(|tracker| {
-        tracker.borrow_mut().insert(user_id, usage);
-    });
-}
+// Remove unused functions - usage tracking will be implemented when needed
 
 pub fn is_premium_user(user_id: &str) -> bool {
     let current_time = time();
@@ -222,9 +219,4 @@ pub fn is_premium_user(user_id: &str) -> bool {
     })
 }
 
-#[allow(dead_code)]
-pub fn add_premium_user(user_id: String, subscription: PremiumSubscription) {
-    PREMIUM_USERS.with(|users| {
-        users.borrow_mut().insert(user_id, subscription);
-    });
-}
+
