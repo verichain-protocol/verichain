@@ -17,7 +17,7 @@ export const downloadVideo = async (url, platform) => {
   
   try {
     // Check if it's a direct video URL (for testing)
-    if (url.startsWith('blob:') || url.startsWith('data:') || url.includes('mp4')) {
+    if (url.startsWith('blob:') || url.startsWith('data:') || url.includes('.mp4') || url.includes('.webm') || url.includes('.mov')) {
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to fetch video: ${response.statusText}`);
@@ -25,33 +25,13 @@ export const downloadVideo = async (url, platform) => {
       return await response.blob();
     }
 
-    // For social media URLs, we need a backend service
-    // This is a placeholder that would call your backend API
-    const backendUrl = '/api/download-video'; // This would be your backend endpoint
-    
-    const response = await fetch(backendUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: url,
-        platform: platform,
-        format: 'mp4',
-        quality: 'best[height<=720]' // Limit quality for faster processing
-      })
-    });
-
-    if (!response.ok) {
-      // Fallback: return a demo error or placeholder
-      throw new Error('Video download service unavailable. Please upload a video file instead.');
-    }
-
-    return await response.blob();
+    // For social media URLs, we don't have a backend video download service yet
+    // This feature requires implementing a backend service with yt-dlp or similar
+    throw new Error('Social media URL download is not yet implemented. Please download the video file manually and use the "Upload Video File" option instead.');
 
   } catch (error) {
     console.error('Video download error:', error);
-    throw new Error(`Failed to download video: ${error.message}`);
+    throw new Error(`Video loading error: ${error.message}`);
   }
 };
 
@@ -71,6 +51,22 @@ export const extractFrames = async (videoBlob, options = {}) => {
     height = 224
   } = options;
 
+  console.log('=== FRAME EXTRACTION DEBUG START ===');
+  console.log('Starting frame extraction with options:', options);
+  console.log('Video blob info:', {
+    size: videoBlob.size,
+    type: videoBlob.type,
+    constructor: videoBlob.constructor.name
+  });
+
+  // Check browser support first
+  const support = checkBrowserSupport();
+  console.log('Browser support check:', support);
+  
+  if (!support.isSupported()) {
+    throw new Error('Browser does not support required video processing features');
+  }
+
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
     const canvas = document.createElement('canvas');
@@ -82,69 +78,218 @@ export const extractFrames = async (videoBlob, options = {}) => {
     const frames = [];
     let currentTime = 0;
     let frameCount = 0;
+    let timeoutId = null;
+    let hasTimedOut = false;
+
+    // Set up timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      hasTimedOut = true;
+      console.error('Frame extraction timed out after 30 seconds');
+      reject(new Error('Frame extraction timed out - video may be corrupted or unsupported'));
+    }, 30000);
+
+    const cleanup = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      clearTimeout(timeout);
+      if (video.src && video.src.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(video.src);
+        } catch (e) {
+          console.warn('Error revoking video URL:', e);
+        }
+      }
+    };
+
+    video.addEventListener('loadstart', () => {
+      console.log('Video load started');
+    });
+
+    video.addEventListener('loadeddata', () => {
+      console.log('Video data loaded');
+    });
 
     video.addEventListener('loadedmetadata', () => {
+      if (hasTimedOut) return;
+      
+      console.log('Video metadata loaded:', {
+        duration: video.duration,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        readyState: video.readyState,
+        networkState: video.networkState
+      });
+
+      // Validate video - be more lenient
+      if (!video.duration || isNaN(video.duration)) {
+        console.warn('Video has invalid duration, but attempting to extract frames anyway');
+        // Don't fail here, try to proceed
+      }
+
+      if (video.duration === Infinity) {
+        console.warn('Video has infinite duration (possibly live stream), using default interval');
+        // Set a reasonable default for infinite duration
+        currentTime = 0;
+        extractNextFrame();
+        return;
+      }
+
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        console.warn('Video has zero dimensions, but attempting to proceed with default canvas size');
+      }
+
       const duration = video.duration * 1000; // Convert to milliseconds
       const actualInterval = Math.min(interval, duration / maxFrames);
       
-      console.log(`Video duration: ${duration}ms, extracting ${maxFrames} frames at ${actualInterval}ms intervals`);
+      console.log(`Video validated. Duration: ${duration}ms, extracting ${maxFrames} frames at ${actualInterval}ms intervals`);
       
+      // Start extraction
       extractNextFrame();
     });
 
     video.addEventListener('error', (e) => {
-      reject(new Error(`Video loading error: ${e.message || 'Unknown error'}`));
+      if (hasTimedOut) return;
+      
+      console.error('Video error event:', e);
+      console.error('Video error details:', {
+        error: video.error,
+        code: video.error?.code,
+        message: video.error?.message,
+        networkState: video.networkState,
+        readyState: video.readyState
+      });
+      
+      cleanup();
+      
+      let errorMessage = 'Unknown video error';
+      if (video.error) {
+        switch (video.error.code) {
+          case video.error.MEDIA_ERR_ABORTED:
+            errorMessage = 'Video loading was aborted';
+            break;
+          case video.error.MEDIA_ERR_NETWORK:
+            errorMessage = 'Network error while loading video';
+            break;
+          case video.error.MEDIA_ERR_DECODE:
+            errorMessage = 'Video format not supported or corrupted';
+            break;
+          case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = 'Video format not supported by browser';
+            break;
+          default:
+            errorMessage = video.error.message || 'Unknown video error';
+        }
+      }
+      
+      reject(new Error(`Video loading error: ${errorMessage}`));
     });
 
     const extractNextFrame = () => {
-      if (frameCount >= maxFrames || currentTime >= video.duration) {
+      if (hasTimedOut) return;
+      
+      if (frameCount >= maxFrames || currentTime >= video.duration * 1000) {
+        console.log(`Frame extraction completed. Extracted ${frames.length} frames.`);
+        
+        // If we didn't get any frames, try to extract one frame from the beginning
+        if (frames.length === 0) {
+          console.warn('No frames extracted, attempting to get a single frame from start of video');
+          video.currentTime = 0;
+          frameCount = 0;
+          currentTime = 0;
+          return; // This will trigger seeked event
+        }
+        
+        cleanup();
         resolve(frames);
         return;
       }
 
+      console.log(`Extracting frame ${frameCount + 1} at time ${currentTime/1000}s`);
       video.currentTime = currentTime / 1000; // Convert back to seconds
     };
 
     video.addEventListener('seeked', () => {
+      if (hasTimedOut) return;
+      
       try {
+        console.log('Video seeked to:', video.currentTime, 'readyState:', video.readyState);
+        
+        // Ensure video is ready for drawing
+        if (video.readyState < 2) {
+          console.warn('Video not ready for drawing, skipping frame');
+          frameCount++;
+          currentTime += interval;
+          timeoutId = setTimeout(extractNextFrame, 100);
+          return;
+        }
+        
         // Draw video frame to canvas
         ctx.drawImage(video, 0, 0, width, height);
         
         // Convert canvas to blob
         canvas.toBlob((blob) => {
+          if (hasTimedOut) return;
+          
           if (blob) {
+            console.log('Frame blob created, size:', blob.size);
             const reader = new FileReader();
             reader.onload = () => {
+              if (hasTimedOut) return;
+              
               frames.push(reader.result);
               frameCount++;
               currentTime += interval;
               
+              console.log(`Frame ${frameCount} extracted successfully, total frames: ${frames.length}`);
+              
               // Extract next frame
-              setTimeout(extractNextFrame, 10); // Small delay to prevent blocking
+              timeoutId = setTimeout(extractNextFrame, 150); // Small delay for stability
             };
-            reader.onerror = () => {
+            reader.onerror = (err) => {
+              console.error('FileReader error:', err);
+              cleanup();
               reject(new Error('Failed to read frame data'));
             };
             reader.readAsArrayBuffer(blob);
           } else {
+            console.error('Failed to create blob from canvas');
+            cleanup();
             reject(new Error('Failed to extract frame'));
           }
         }, `image/${format}`, quality);
 
       } catch (error) {
+        console.error('Frame extraction error:', error);
+        cleanup();
         reject(new Error(`Frame extraction error: ${error.message}`));
       }
     });
 
     // Load video
-    const videoUrl = URL.createObjectURL(videoBlob);
-    video.src = videoUrl;
-    video.load();
-
-    // Cleanup URL when done
-    video.addEventListener('loadeddata', () => {
-      URL.revokeObjectURL(videoUrl);
-    });
+    try {
+      console.log('Creating video URL from blob...');
+      console.log('Blob details:', {
+        size: videoBlob.size,
+        type: videoBlob.type,
+        lastModified: videoBlob.lastModified || 'N/A'
+      });
+      
+      const videoUrl = URL.createObjectURL(videoBlob);
+      console.log('Video URL created:', videoUrl);
+      
+      // Set video properties for better compatibility
+      video.crossOrigin = 'anonymous';
+      video.preload = 'metadata';
+      video.muted = true; // Required for autoplay in some browsers
+      
+      video.src = videoUrl;
+      console.log('Video src set, calling load()...');
+      video.load();
+      
+    } catch (error) {
+      console.error('Error creating video URL:', error);
+      cleanup();
+      reject(new Error(`Failed to create video URL: ${error.message}`));
+    }
   });
 };
 
@@ -347,11 +492,135 @@ export const checkBrowserSupport = () => {
     fetch: !!window.fetch,
     videoFormats: {
       mp4: video.canPlayType('video/mp4') !== '',
+      mp4_h264: video.canPlayType('video/mp4; codecs="avc1.42E01E"') !== '',
+      mp4_h265: video.canPlayType('video/mp4; codecs="hev1.1.6.L93.B0"') !== '',
       webm: video.canPlayType('video/webm') !== '',
-      ogg: video.canPlayType('video/ogg') !== ''
+      webm_vp8: video.canPlayType('video/webm; codecs="vp8"') !== '',
+      webm_vp9: video.canPlayType('video/webm; codecs="vp9"') !== '',
+      ogg: video.canPlayType('video/ogg') !== '',
+      avi: video.canPlayType('video/avi') !== '',
+      mov: video.canPlayType('video/quicktime') !== ''
     },
     isSupported: function() {
       return this.videoElement && this.canvasElement && this.canvas2d && this.fileReader && this.fetch;
     }
   };
+};
+
+/**
+ * Quick test to check if a video file can be played by the browser
+ * @param {File} videoFile - Video file to test
+ * @returns {Promise<Object>} - Detailed compatibility result
+ */
+export const testVideoCompatibility = async (videoFile) => {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    let hasResolved = false;
+    
+    const cleanup = () => {
+      if (video.src && video.src.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(video.src);
+        } catch (e) {
+          console.warn('Error revoking URL:', e);
+        }
+      }
+    };
+    
+    const resolveOnce = (result) => {
+      if (!hasResolved) {
+        hasResolved = true;
+        cleanup();
+        resolve(result);
+      }
+    };
+    
+    // Increased timeout for slower files
+    const timeout = setTimeout(() => {
+      console.warn('Video compatibility test timed out');
+      resolveOnce({
+        isCompatible: false,
+        error: 'Timeout - file may be too large or corrupted',
+        canPlayType: video.canPlayType(videoFile.type)
+      });
+    }, 10000);
+    
+    video.addEventListener('loadedmetadata', () => {
+      console.log('Video compatibility test: metadata loaded successfully');
+      clearTimeout(timeout);
+      resolveOnce({
+        isCompatible: true,
+        duration: video.duration,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        canPlayType: video.canPlayType(videoFile.type)
+      });
+    });
+    
+    video.addEventListener('loadeddata', () => {
+      console.log('Video compatibility test: data loaded successfully');
+      // Don't resolve here, wait for metadata
+    });
+    
+    video.addEventListener('error', (e) => {
+      console.error('Video compatibility test error:', e);
+      console.error('Video error details:', {
+        error: video.error,
+        code: video.error?.code,
+        message: video.error?.message
+      });
+      
+      clearTimeout(timeout);
+      
+      let errorMessage = 'Unknown video error';
+      if (video.error) {
+        switch (video.error.code) {
+          case video.error.MEDIA_ERR_ABORTED:
+            errorMessage = 'Video loading was aborted';
+            break;
+          case video.error.MEDIA_ERR_NETWORK:
+            errorMessage = 'Network error while loading video';
+            break;
+          case video.error.MEDIA_ERR_DECODE:
+            errorMessage = 'Video codec not supported or file corrupted';
+            break;
+          case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = 'Video format not supported by browser';
+            break;
+          default:
+            errorMessage = video.error.message || 'Unknown video error';
+        }
+      }
+      
+      resolveOnce({
+        isCompatible: false,
+        error: errorMessage,
+        errorCode: video.error?.code,
+        canPlayType: video.canPlayType(videoFile.type)
+      });
+    });
+    
+    try {
+      console.log('Creating video URL for compatibility test...');
+      const videoUrl = URL.createObjectURL(videoFile);
+      
+      // Set video properties for better compatibility
+      video.crossOrigin = 'anonymous';
+      video.preload = 'metadata';
+      video.muted = true;
+      
+      video.src = videoUrl;
+      console.log('Loading video for compatibility test...');
+      video.load();
+      
+    } catch (error) {
+      console.error('Error creating video URL for compatibility test:', error);
+      clearTimeout(timeout);
+      resolveOnce({
+        isCompatible: false,
+        error: `Failed to create video URL: ${error.message}`,
+        canPlayType: video.canPlayType(videoFile.type)
+      });
+    }
+  });
 };
