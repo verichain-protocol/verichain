@@ -33,6 +33,7 @@ pub use handlers::{
     analyze_image,
     analyze_video, 
     analyze_media,
+    analyze_social_media,
     get_model_info,
     health_check,
     verify_model_integrity,
