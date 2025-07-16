@@ -18,6 +18,7 @@ tokio = { version = "1", default-features = false, features = ["rt","time","macr
 getrandom = { version = "0.2", features = ["custom"] }
 rand = { version = "0.8", default-features = false, features = ["std_rng"] }
 chrono = { version = "0.4", features = ["serde"] }
+sha2 = "0.10"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-opencv = "0.88"
+# opencv = "0.88"  # Temporarily disabled for compilation
