@@ -1,0 +1,140 @@
+{
+  "original_file": "verichain-model.onnx",
+  "original_size": 343480839,
+  "total_chunks": 22,
+  "chunk_size_mb": 15,
+  "chunks": [
+    {
+      "chunk_id": 0,
+      "filename": "model_chunk_000.bin",
+      "size": 15728640,
+      "hash": "4d89d92e1041e3c8cdd986a429d8ea145fb1b903a91309c0256e4a3da1535216"
+    },
+    {
+      "chunk_id": 1,
+      "filename": "model_chunk_001.bin",
+      "size": 15728640,
+      "hash": "7863eac051858e1c4b44d691f29d0ae2a69bdec2cd6eb9a8706c7e0d61fa981a"
+    },
+    {
+      "chunk_id": 2,
+      "filename": "model_chunk_002.bin",
+      "size": 15728640,
+      "hash": "a5109a22a3f0b12cecbd6fd73f8a203e8d62b391cbc0aef8fcd9529e4442fad8"
+    },
+    {
+      "chunk_id": 3,
+      "filename": "model_chunk_003.bin",
+      "size": 15728640,
+      "hash": "3cbabf664431f2ff4f14fc4dbb2ca83851cc150d577e4375ecf96ab8aa4e77d2"
+    },
+    {
+      "chunk_id": 4,
+      "filename": "model_chunk_004.bin",
+      "size": 15728640,
+      "hash": "d1dc55e6b447e4f2241b3db9cc9d9e84e3a4858d51697a738b0c42c7093e5cda"
+    },
+    {
+      "chunk_id": 5,
+      "filename": "model_chunk_005.bin",
+      "size": 15728640,
+      "hash": "406df2f0cd089418445dd05b4c87aa2b233663af718b12664e53c7cb323289ef"
+    },
+    {
+      "chunk_id": 6,
+      "filename": "model_chunk_006.bin",
+      "size": 15728640,
+      "hash": "591e0b3c85e27aa57cbf80bf9722d8c94d153ed46cfa1e489e7768002ad0186b"
+    },
+    {
+      "chunk_id": 7,
+      "filename": "model_chunk_007.bin",
+      "size": 15728640,
+      "hash": "d48cfee99f5cdf5cc04ce7af212c96a5e3bed462fab45ac760d47fb1489eb6e9"
+    },
+    {
+      "chunk_id": 8,
+      "filename": "model_chunk_008.bin",
+      "size": 15728640,
+      "hash": "306abcac98b40b30e0fdd940626a0d123db07f05e02d05f75e2e3e9e95da7449"
+    },
+    {
+      "chunk_id": 9,
+      "filename": "model_chunk_009.bin",
+      "size": 15728640,
+      "hash": "74dfe1e3b1234c522ecff58895cbf5f59f9ce2c1c74536be2c43bef29456c69e"
+    },
+    {
+      "chunk_id": 10,
+      "filename": "model_chunk_010.bin",
+      "size": 15728640,
+      "hash": "dcee879eee7a7954ece0e2b95c39f4bcbdd0750199a01fb977828f57a4fa3bee"
+    },
+    {
+      "chunk_id": 11,
+      "filename": "model_chunk_011.bin",
+      "size": 15728640,
+      "hash": "29d4ad61822a704c37b42dd4a9b753a84b93bb25c3d533ae119fe4194f495831"
+    },
+    {
+      "chunk_id": 12,
+      "filename": "model_chunk_012.bin",
+      "size": 15728640,
+      "hash": "50a15c8b4ed18968de117987305ce89cdd4023b048b16017e0c51802764db462"
+    },
+    {
+      "chunk_id": 13,
+      "filename": "model_chunk_013.bin",
+      "size": 15728640,
+      "hash": "f9561118a338e058ea2bf4563cb0042da960de867e8115c8d0d1982a6857a477"
+    },
+    {
+      "chunk_id": 14,
+      "filename": "model_chunk_014.bin",
+      "size": 15728640,
+      "hash": "64ca2ddabe76ace8d32d7879434c57144831cc1e7ebf161574843166eec93454"
+    },
+    {
+      "chunk_id": 15,
+      "filename": "model_chunk_015.bin",
+      "size": 15728640,
+      "hash": "09794117f42979e7e298cabed60eeb0a960ba1a8815766c869902fd12e2343cd"
+    },
+    {
+      "chunk_id": 16,
+      "filename": "model_chunk_016.bin",
+      "size": 15728640,
+      "hash": "5369506f7b265e473fb0a7959c69f9b876a449edf6f8344a11edfa31f477f026"
+    },
+    {
+      "chunk_id": 17,
+      "filename": "model_chunk_017.bin",
+      "size": 15728640,
+      "hash": "87eeae0b624a0e3746e51f3cd030c1511692375579f09a34d43562caa2c8eb1c"
+    },
+    {
+      "chunk_id": 18,
+      "filename": "model_chunk_018.bin",
+      "size": 15728640,
+      "hash": "74d32657f6cd090f422e9628f6f349fa5666c187bed89d3773ed2a5d0b325499"
+    },
+    {
+      "chunk_id": 19,
+      "filename": "model_chunk_019.bin",
+      "size": 15728640,
+      "hash": "0d30776b4a08a6c9e01a8d4aebbefee59b64f20fc0843341b861ffeebb8528da"
+    },
+    {
+      "chunk_id": 20,
+      "filename": "model_chunk_020.bin",
+      "size": 15728640,
+      "hash": "eeb20ea671793f7c6a43fd3a608c97d167ff4738eb5cc3f4bb00168ba2f2d7f9"
+    },
+    {
+      "chunk_id": 21,
+      "filename": "model_chunk_021.bin",
+      "size": 13179399,
+      "hash": "2311a29fffc83d07163c9bf1eba1ba7593034867393d1348d67b077c0a5fef86"
+    }
+  ]
+}

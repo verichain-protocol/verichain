@@ -67,6 +67,15 @@ where
     })
 }
 
+pub fn with_detector_mut<T, F>(f: F) -> Option<T>
+where
+    F: FnOnce(&mut DeepfakeDetector) -> T,
+{
+    DETECTOR.with(|d| {
+        d.borrow_mut().as_mut().map(f)
+    })
+}
+
 pub fn get_usage(user_id: &str) -> Option<UserUsage> {
     USAGE_TRACKER.with(|tracker| {
         tracker.borrow().get(user_id).cloned()

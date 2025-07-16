@@ -10,7 +10,7 @@ use crate::state;
 pub async fn analyze_image(data: Vec<u8>) -> Result<DetectionResult, String> {
     let start_time = time();
     
-    let result = state::with_detector(|detector| {
+    let result = state::with_detector_mut(|detector| {
         detector.analyze_image(&data)
     });
     
@@ -29,7 +29,7 @@ pub async fn analyze_image(data: Vec<u8>) -> Result<DetectionResult, String> {
 pub async fn analyze_video(data: Vec<u8>) -> Result<DetectionResult, String> {
     let start_time = time();
     
-    let result = state::with_detector(|detector| {
+    let result = state::with_detector_mut(|detector| {
         detector.analyze_video(&data)
     });
     
