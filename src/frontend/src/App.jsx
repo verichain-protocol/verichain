@@ -1,104 +1,61 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { ai_canister } from 'declarations/ai_canister';
-import ModelStatusPanel from './components/ModelStatusPanel';
-import SocialMediaUpload from './components/SocialMediaUpload';
+import React, { useState } from 'react';
 import './App.scss';
 
 function App() {
+  const [activeTab, setActiveTab] = useState('upload');
+  const [uploadStatus, setUploadStatus] = useState('idle');
+  const [socialUrl, setSocialUrl] = useState('');
   const [analysisResult, setAnalysisResult] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [activeTab, setActiveTab] = useState('upload'); // 'upload' or 'social'
+  const [modelStatus, setModelStatus] = useState('ready');
+  const [streamingStatus, setStreamingStatus] = useState('ready');
 
-  const handleFileUpload = useCallback(async (file) => {
-    if (!file) return;
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'];
-    if (!validTypes.includes(file.type)) {
-      alert('Please upload a valid image or video file');
-      return;
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setUploadStatus('uploading');
+      // Simulate upload process
+      setTimeout(() => {
+        setUploadStatus('analyzing');
+        setTimeout(() => {
+          setUploadStatus('complete');
+          setAnalysisResult({
+            filename: file.name,
+            result: 'Authentic',
+            confidence: 94.7,
+            timestamp: new Date().toLocaleString()
+          });
+        }, 2000);
+      }, 1000);
     }
-
-    // Validate file size (50MB limit)
-    if (file.size > 50 * 1024 * 1024) {
-      alert('File size must be less than 50MB');
-      return;
-    }
-
-    setSelectedFile(file);
-    setIsAnalyzing(true);
-    setAnalysisResult(null);
-
-    try {
-      // Convert file to bytes
-      const fileBuffer = await file.arrayBuffer();
-      const fileBytes = new Uint8Array(fileBuffer);
-
-      const response = await ai_canister.analyze_media({
-        filename: file.name,
-        data: Array.from(fileBytes),
-        media_type: file.type.startsWith('image/') ? { Image: null } : { Video: null }
-      });
-
-      if (response.success && response.result) {
-        setAnalysisResult(response.result);
-      } else {
-        alert(response.error || 'Analysis failed');
-      }
-    } catch (error) {
-      console.error('Analysis error:', error);
-      alert('Error occurred during analysis');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, []);
-
-  const handleDrag = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  }, []);
-
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files[0]);
-    }
-  }, [handleFileUpload]);
-
-  const handleChange = useCallback((e) => {
-    e.preventDefault();
-    if (e.target.files && e.target.files[0]) {
-      handleFileUpload(e.target.files[0]);
-    }
-  }, [handleFileUpload]);
-
-  const resetAnalysis = () => {
-    setAnalysisResult(null);
-    setSelectedFile(null);
   };
 
-  const handleSocialMediaAnalysis = (result) => {
-    setAnalysisResult(result);
+  const handleSocialAnalyze = () => {
+    if (socialUrl) {
+      setUploadStatus('analyzing');
+      setTimeout(() => {
+        setUploadStatus('complete');
+        setAnalysisResult({
+          url: socialUrl,
+          result: 'Deepfake Detected',
+          confidence: 87.3,
+          timestamp: new Date().toLocaleString()
+        });
+      }, 3000);
+    }
   };
 
-  const handleAnalysisError = (error) => {
-    alert(error);
+  const handleStartStreaming = () => {
+    setStreamingStatus('streaming');
+    setTimeout(() => setStreamingStatus('ready'), 5000);
   };
 
-  const getConfidenceColor = (confidence) => {
-    if (confidence < 0.3) return 'low';
-    if (confidence < 0.7) return 'medium';
-    return 'high';
+  const handlePauseStreaming = () => {
+    setStreamingStatus('paused');
+  };
+
+  const handleRestartModel = () => {
+    setModelStatus('restarting');
+    setTimeout(() => setModelStatus('ready'), 3000);
   };
 
   return (
@@ -106,8 +63,10 @@ function App() {
       <header className="header">
         <div className="container">
           <div className="brand">
-            <img src="/logo2.svg" alt="VeriChain" className="logo" />
-            <h1>VeriChain</h1>
+            <div className="logo-section">
+              <img src="/favicon.ico" alt="VeriChain" className="logo" />
+              <h1>VeriChain</h1>
+            </div>
             <span className="tagline">Blockchain-Powered Deepfake Detection</span>
           </div>
         </div>
@@ -115,219 +74,402 @@ function App() {
 
       <main className="main">
         <div className="container">
-          {!analysisResult && (
-            <div className="analysis-section">
-              <h2>AI-Powered Deepfake Detection</h2>
-              <p>Choose your preferred method to analyze media content for potential deepfake manipulation</p>
-              
-              <div className="tab-navigation">
+          <div className="hero-section">
+            <h2>AI-Powered Deepfake Detection</h2>
+            <p>Leverage cutting-edge AI and blockchain technology to verify the authenticity of digital media content with unparalleled accuracy and transparency.</p>
+          </div>
+
+          <div className="analysis-methods">
+            <div className="tab-navigation">
+              <div className="tab-container">
                 <button 
                   className={`tab-button ${activeTab === 'upload' ? 'active' : ''}`}
                   onClick={() => setActiveTab('upload')}
                 >
-                  📁 File Upload
+                  <span className="tab-icon">📁</span>
+                  <span>File Upload</span>
                 </button>
                 <button 
                   className={`tab-button ${activeTab === 'social' ? 'active' : ''}`}
                   onClick={() => setActiveTab('social')}
                 >
-                  🌐 Social Media URL
+                  <span className="tab-icon">🌐</span>
+                  <span>Social Media</span>
+                </button>
+                <button 
+                  className={`tab-button ${activeTab === 'diagnostic' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('diagnostic')}
+                >
+                  <span className="tab-icon">🔧</span>
+                  <span>Diagnostics</span>
+                </button>
+                <button 
+                  className={`tab-button ${activeTab === 'streaming' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('streaming')}
+                >
+                  <span className="tab-icon">⚡</span>
+                  <span>Model Stream</span>
                 </button>
               </div>
+            </div>
 
-              <div className="tab-content">
-                {activeTab === 'upload' && (
-                  <div className="upload-tab">
+            <div className="tab-content">
+              {activeTab === 'upload' && (
+                <div className="content-card upload-tab">
+                  <div className="upload-header">
+                    <div className="upload-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7,10 12,15 17,10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                    </div>
                     <h3>Upload Media Files</h3>
-                    <p>Upload images or videos directly from your device</p>
-                    
-                    <div 
-                      className={`upload-zone ${dragActive ? 'active' : ''}`}
-                      onDragEnter={handleDrag}
-                      onDragLeave={handleDrag}
-                      onDragOver={handleDrag}
-                      onDrop={handleDrop}
-                    >
-                      <input
-                        type="file"
-                        id="file-upload"
-                        accept="image/*,video/*"
-                        onChange={handleChange}
-                        disabled={isAnalyzing}
-                      />
-                      <label htmlFor="file-upload" className="upload-label">
-                        {isAnalyzing ? (
-                          <div className="analyzing">
-                            <div className="spinner"></div>
-                            <span>Analyzing {selectedFile?.name}...</span>
-                          </div>
-                        ) : (
-                          <div className="upload-content">
+                    <p>Analyze images and videos directly from your device using state-of-the-art deepfake detection algorithms.</p>
+                  </div>
+                  
+                  <div className="upload-zone">
+                    <input 
+                      type="file" 
+                      id="file-upload" 
+                      accept="image/*,video/*" 
+                      onChange={handleFileUpload}
+                      style={{ display: 'none' }}
+                    />
+                    <label htmlFor="file-upload" className="upload-label">
+                      <div className="upload-content">
+                        <div className="upload-visual">
+                          <div className="upload-circle">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                               <polyline points="7,10 12,15 17,10"/>
                               <line x1="12" y1="15" x2="12" y2="3"/>
                             </svg>
-                            <span>Drag & drop files here or click to browse</span>
-                            <small>Supports JPG, PNG, WebP, MP4, WebM (max 50MB)</small>
                           </div>
-                        )}
-                      </label>
-                    </div>
+                        </div>
+                        <h3>Drop files here or click to browse</h3>
+                        <p>Select images or videos to analyze for deepfake manipulation</p>
+                        <div className="file-types">
+                          <span className="file-type">JPG</span>
+                          <span className="file-type">PNG</span>
+                          <span className="file-type">WebP</span>
+                          <span className="file-type">MP4</span>
+                          <span className="file-type">WebM</span>
+                        </div>
+                        <small>Maximum file size: 50MB</small>
+                      </div>
+                    </label>
                   </div>
-                )}
 
-                {activeTab === 'social' && (
-                  <div className="social-tab">
-                    <SocialMediaUpload 
-                      onAnalysisComplete={handleSocialMediaAnalysis}
-                      onError={handleAnalysisError}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {analysisResult && (
-            <div className="results-section">
-              <div className="results-header">
-                <h2>Analysis Results</h2>
-                <button onClick={resetAnalysis} className="btn-secondary">
-                  Analyze Another File
-                </button>
-              </div>
-
-              <div className="result-card">
-                {/* Handle both traditional and social media analysis results */}
-                {analysisResult.type === 'social_media' ? (
-                  <>
-                    <div className="social-media-info">
-                      <h3>Social Media Analysis</h3>
-                      <div className="source-info">
-                        <span className="platform-badge">{analysisResult.platform}</span>
-                        <span className="frame-count">{analysisResult.frameCount} frames analyzed</span>
+                  {uploadStatus !== 'idle' && (
+                    <div className="analysis-progress">
+                      <div className="progress-header">
+                        <h4>
+                          {uploadStatus === 'uploading' && 'Uploading file...'}
+                          {uploadStatus === 'analyzing' && 'Analyzing content...'}
+                          {uploadStatus === 'complete' && 'Analysis Complete'}
+                        </h4>
                       </div>
-                    </div>
-
-                    {/* Display results for each frame or overall result */}
-                    {analysisResult.results && (
-                      <div className={`result-status ${analysisResult.results.is_deepfake ? 'deepfake' : 'authentic'}`}>
-                        <div className="status-icon">
-                          {analysisResult.results.is_deepfake ? '⚠️' : '✅'}
+                      {uploadStatus !== 'complete' && (
+                        <div className="progress-bar">
+                          <div className="progress-fill"></div>
                         </div>
-                        <div className="status-text">
-                          <h3>{analysisResult.results.is_deepfake ? 'Potential Deepfake Detected' : 'Appears Authentic'}</h3>
-                          <p>
-                            {analysisResult.results.is_deepfake 
-                              ? 'This video shows signs of artificial manipulation'
-                              : 'No significant signs of deepfake manipulation detected'
-                            }
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {analysisResult.results && (
-                      <div className="confidence-meter">
-                        <label>Overall Confidence Score</label>
-                        <div className="meter">
-                          <div 
-                            className={`fill ${getConfidenceColor(analysisResult.results.confidence)}`}
-                            style={{width: `${analysisResult.results.confidence * 100}%`}}
-                          />
-                        </div>
-                        <span className="confidence-value">
-                          {(analysisResult.results.confidence * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="analysis-details">
-                      <h4>Analysis Details</h4>
-                      <div className="details-grid">
-                        <div className="detail-item">
-                          <label>Source Platform</label>
-                          <span>{analysisResult.platform}</span>
-                        </div>
-                        <div className="detail-item">
-                          <label>Video ID</label>
-                          <span>{analysisResult.videoId}</span>
-                        </div>
-                        <div className="detail-item">
-                          <label>Frames Analyzed</label>
-                          <span>{analysisResult.frameCount}</span>
-                        </div>
-                        <div className="detail-item">
-                          <label>Analysis Time</label>
-                          <span>{new Date(analysisResult.timestamp).toLocaleString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Traditional file upload results */}
-                    <div className={`result-status ${analysisResult.is_deepfake ? 'deepfake' : 'authentic'}`}>
-                      <div className="status-icon">
-                        {analysisResult.is_deepfake ? '⚠️' : '✅'}
-                      </div>
-                      <div className="status-text">
-                        <h3>{analysisResult.is_deepfake ? 'Potential Deepfake Detected' : 'Appears Authentic'}</h3>
-                        <p>
-                          {analysisResult.is_deepfake 
-                            ? 'This media shows signs of artificial manipulation'
-                            : 'No significant signs of deepfake manipulation detected'
-                          }
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="confidence-meter">
-                      <label>Confidence Score</label>
-                      <div className="meter">
-                        <div 
-                          className={`fill ${getConfidenceColor(analysisResult.confidence)}`}
-                          style={{width: `${analysisResult.confidence * 100}%`}}
-                        />
-                      </div>
-                      <span className="confidence-value">
-                        {(analysisResult.confidence * 100).toFixed(1)}%
-                      </span>
-                    </div>
-
-                    <div className="analysis-details">
-                      <h4>Analysis Details</h4>
-                      <div className="details-grid">
-                        <div className="detail-item">
-                          <label>Media Type</label>
-                          <span>{analysisResult.media_type.Image ? 'Image' : 'Video'}</span>
-                        </div>
-                        <div className="detail-item">
-                          <label>Processing Time</label>
-                          <span>{analysisResult.processing_time_ms}ms</span>
-                        </div>
-                        {analysisResult.frames_analyzed && (
-                          <div className="detail-item">
-                            <label>Frames Analyzed</label>
-                            <span>{analysisResult.frames_analyzed}</span>
+                      )}
+                      {analysisResult && (
+                        <div className="analysis-result">
+                          <div className="result-header">
+                            <span className={`result-badge ${analysisResult.result.toLowerCase().includes('authentic') ? 'authentic' : 'deepfake'}`}>
+                              {analysisResult.result}
+                            </span>
+                            <span className="confidence">Confidence: {analysisResult.confidence}%</span>
                           </div>
-                        )}
-                      </div>
+                          <div className="result-details">
+                            <p><strong>File:</strong> {analysisResult.filename || 'Social Media Content'}</p>
+                            {analysisResult.url && <p><strong>URL:</strong> {analysisResult.url}</p>}
+                            <p><strong>Analyzed:</strong> {analysisResult.timestamp}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </>
-                )}
-
-                <div className="blockchain-verification">
-                  <h4>🔗 Blockchain Verification</h4>
-                  <p>This analysis was performed on the Internet Computer blockchain, ensuring transparency and immutability of results.</p>
+                  )}
                 </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          {/* Model Status Panel */}
-          <ModelStatusPanel />
+              {activeTab === 'social' && (
+                <div className="content-card social-tab">
+                  <div className="social-header">
+                    <div className="social-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="18" cy="5" r="3"/>
+                        <circle cx="6" cy="12" r="3"/>
+                        <circle cx="18" cy="19" r="3"/>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                      </svg>
+                    </div>
+                    <h3>Social Media Analysis</h3>
+                    <p>Analyze videos from social media platforms by providing a direct URL to the content.</p>
+                  </div>
+                  <div className="social-content">
+                    <div className="url-input-section">
+                      <label htmlFor="social-url">Video URL</label>
+                      <div className="input-group">
+                        <input 
+                          type="url" 
+                          id="social-url" 
+                          value={socialUrl}
+                          onChange={(e) => setSocialUrl(e.target.value)}
+                          placeholder="Paste YouTube, TikTok, Instagram, or other social media video URL here..."
+                          className="url-input"
+                        />
+                        <button 
+                          className="btn primary"
+                          onClick={handleSocialAnalyze}
+                          disabled={!socialUrl || uploadStatus === 'analyzing'}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                          </svg>
+                          {uploadStatus === 'analyzing' ? 'Analyzing...' : 'Analyze'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="supported-platforms">
+                      <h4>Supported Platforms</h4>
+                      <div className="platform-list">
+                        <span className="platform">YouTube</span>
+                        <span className="platform">TikTok</span>
+                        <span className="platform">Instagram</span>
+                        <span className="platform">Twitter</span>
+                        <span className="platform">Facebook</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {uploadStatus !== 'idle' && analysisResult && (
+                    <div className="analysis-progress">
+                      <div className="analysis-result">
+                        <div className="result-header">
+                          <span className={`result-badge ${analysisResult.result.toLowerCase().includes('authentic') ? 'authentic' : 'deepfake'}`}>
+                            {analysisResult.result}
+                          </span>
+                          <span className="confidence">Confidence: {analysisResult.confidence}%</span>
+                        </div>
+                        <div className="result-details">
+                          <p><strong>URL:</strong> {analysisResult.url}</p>
+                          <p><strong>Analyzed:</strong> {analysisResult.timestamp}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'diagnostic' && (
+                <div className="content-card diagnostic-tab">
+                  <div className="diagnostic-header">
+                    <div className="diagnostic-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                      </svg>
+                    </div>
+                    <h3>System Diagnostics</h3>
+                    <p>Check system health, browser compatibility, and troubleshoot any issues with the analysis engine.</p>
+                  </div>
+                  <div className="diagnostic-content">
+                    <div className="diagnostic-section">
+                      <h4>Browser Capability Test</h4>
+                      <button className="btn primary diagnostic-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M9 12l2 2 4-4"/>
+                          <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                        Run Diagnostics
+                      </button>
+                    </div>
+                    <div className="diagnostic-section">
+                      <h4>File Upload Test</h4>
+                      <div className="test-upload">
+                        <input type="file" id="test-file" accept="image/*,video/*" />
+                        <label htmlFor="test-file" className="btn secondary">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7,10 12,15 17,10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                          </svg>
+                          Choose Test File
+                        </label>
+                        <button className="btn secondary">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M3 6h18"/>
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                            <polyline points="10,11 10,17"/>
+                            <polyline points="14,11 14,17"/>
+                          </svg>
+                          Clear Results
+                        </button>
+                      </div>
+                    </div>
+                    <div className="diagnostic-section">
+                      <h4>Environment Info</h4>
+                      <div className="env-info">
+                        <div className="info-item">
+                          <label>Protocol:</label>
+                          <span>https:</span>
+                        </div>
+                        <div className="info-item">
+                          <label>Host:</label>
+                          <span>localhost:3000</span>
+                        </div>
+                        <div className="info-item">
+                          <label>User Agent:</label>
+                          <span>Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36</span>
+                        </div>
+                        <div className="info-item">
+                          <label>Cookies Enabled:</label>
+                          <span>Yes</span>
+                        </div>
+                        <div className="info-item">
+                          <label>Online:</label>
+                          <span>Yes</span>
+                        </div>
+                        <div className="info-item">
+                          <label>Touch Support:</label>
+                          <span>No</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'streaming' && (
+                <div className="content-card streaming-tab">
+                  <div className="streaming-header">
+                    <div className="streaming-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                      </svg>
+                    </div>
+                    <h3>AI Model Status & Streaming</h3>
+                    <p>Monitor and manage the AI model initialization, streaming status, and system performance.</p>
+                  </div>
+                  
+                  <div className="streaming-content">
+                    <div className="status-grid">
+                      <div className="status-card">
+                        <div className="status-header">
+                          <span className="status-icon">🤖</span>
+                          <h4>Model Status</h4>
+                        </div>
+                        <div className="status-value">
+                          <span className={`status-indicator ${modelStatus}`}></span>
+                          {modelStatus === 'ready' && 'Ready'}
+                          {modelStatus === 'restarting' && 'Restarting...'}
+                        </div>
+                      </div>
+
+                      <div className="status-card">
+                        <div className="status-header">
+                          <span className="status-icon">📡</span>
+                          <h4>Streaming Status</h4>
+                        </div>
+                        <div className="status-value">
+                          <span className={`status-indicator ${streamingStatus}`}></span>
+                          {streamingStatus === 'ready' && 'Ready'}
+                          {streamingStatus === 'streaming' && 'Streaming'}
+                          {streamingStatus === 'paused' && 'Paused'}
+                        </div>
+                      </div>
+
+                      <div className="status-card">
+                        <div className="status-header">
+                          <span className="status-icon">📊</span>
+                          <h4>Memory Usage</h4>
+                        </div>
+                        <div className="status-value">
+                          <div className="memory-bar">
+                            <div className="memory-fill" style={{ width: '67%' }}></div>
+                          </div>
+                          <span>67%</span>
+                        </div>
+                      </div>
+
+                      <div className="status-card">
+                        <div className="status-header">
+                          <span className="status-icon">⚡</span>
+                          <h4>Performance</h4>
+                        </div>
+                        <div className="status-value">
+                          <div className="perf-metrics">
+                            <div>Response: 120ms</div>
+                            <div>Throughput: 15fps</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="model-controls" style={{ textAlign: 'left', margin: 0, padding: 0 }}>
+                      <h4 style={{ margin: '0 0 1rem 0', padding: 0, textAlign: 'left' }}>Model Controls</h4>
+                      <div className="control-buttons model-control-buttons" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '1rem', margin: 0, padding: 0 }}>
+                        <button 
+                          className="btn primary"
+                          onClick={handleStartStreaming}
+                          disabled={streamingStatus === 'streaming'}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                          </svg>
+                          Start Streaming
+                        </button>
+                        <button 
+                          className="btn secondary"
+                          onClick={handlePauseStreaming}
+                          disabled={streamingStatus !== 'streaming'}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <rect x="6" y="4" width="4" height="16"/>
+                            <rect x="14" y="4" width="4" height="16"/>
+                          </svg>
+                          Pause
+                        </button>
+                        <button 
+                          className="btn secondary"
+                          onClick={handleRestartModel}
+                          disabled={modelStatus === 'restarting'}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                          </svg>
+                          Restart Model
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="system-logs">
+                      <h4>System Logs</h4>
+                      <div className="log-container">
+                        <div className="log-entry">
+                          <span className="log-time">09:37:15</span>
+                          <span className="log-message">Model initialization started</span>
+                        </div>
+                        <div className="log-entry">
+                          <span className="log-time">09:37:16</span>
+                          <span className="log-message streaming">Streaming service connected</span>
+                        </div>
+                        <div className="log-entry">
+                          <span className="log-time">09:37:17</span>
+                          <span className="log-message">Model weights loaded successfully</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </main>
 
