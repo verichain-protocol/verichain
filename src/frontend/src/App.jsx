@@ -1,5 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { ai_canister } from 'declarations/ai_canister';
+import ModelStatusPanel from './components/ModelStatusPanel';
 import './App.scss';
 
 function App() {
@@ -210,6 +211,9 @@ function App() {
               </div>
             </div>
           )}
+
+          {/* Model Status Panel */}
+          <ModelStatusPanel />
         </div>
       </main>
 
