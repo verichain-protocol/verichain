@@ -12,8 +12,8 @@ import argparse
 from pathlib import Path
 
 # Configuration
-DEFAULT_CHUNK_SIZE_MB = 15  # ICP-compatible chunk size
-MAX_CHUNK_SIZE_MB = 20      # Maximum safe chunk size for ICP
+DEFAULT_CHUNK_SIZE_MB = 0.8  # ICP-compatible chunk size (800KB safe for 2MB limit)
+MAX_CHUNK_SIZE_MB = 1.0      # Maximum safe chunk size for ICP
 
 def calculate_sha256(file_path):
     """Calculate SHA256 hash of a file"""
@@ -80,7 +80,7 @@ def chunk_model(input_file, output_dir, chunk_size_mb=DEFAULT_CHUNK_SIZE_MB):
     output_path.mkdir(parents=True, exist_ok=True)
     
     # Calculate chunk size in bytes
-    chunk_size = chunk_size_mb * 1024 * 1024
+    chunk_size = int(chunk_size_mb * 1024 * 1024)
     
     # Get file info
     file_size = input_path.stat().st_size
