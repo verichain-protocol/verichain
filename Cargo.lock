@@ -27,6 +27,7 @@ dependencies = [
  "getrandom",
  "ic-cdk",
  "ic-cdk-macros",
+ "ic-stable-structures",
  "image",
  "rand",
  "serde",
@@ -533,6 +534,15 @@ dependencies = [
  "candid",
  "serde",
  "serde_bytes",
+]
+
+[[package]]
+name = "ic-stable-structures"
+version = "0.6.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d30d4cf17aff1024e13133897048bcba580e063c9000571ab766ca37e2996f4"
+dependencies = [
+ "ic_principal",
 ]
 
 [[package]]
