@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  verichain:
+    build: .
+    ports:
+      - "4943:4943"  # DFX replica
+      - "3000:3000"  # Frontend dev server
+    volumes:
+      - .:/workspace
+      - cargo_cache:/root/.cargo/registry
+      - node_modules_cache:/workspace/node_modules
+      - frontend_node_modules:/workspace/src/frontend/node_modules
+    environment:
+      - NODE_ENV=development
+      - RUST_LOG=info
+    command: make dev
+    healthcheck:
+      test: ["CMD", "dfx", "ping", "local"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  cargo_cache:
+  node_modules_cache:
+  frontend_node_modules:
