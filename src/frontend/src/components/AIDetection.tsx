@@ -1,18 +1,24 @@
 /**
  * VeriChain AI Detection Component
- * Main interface for deepfake detection using AI model
+ * Main interface for deepfake detection using AI canister
  */
 
 import React, { useState, useCallback, useRef } from 'react';
 import { Upload, AlertTriangle, CheckCircle, Clock, Eye, Camera, Film } from 'lucide-react';
-import { aiService, DetectionResult, formatConfidence, formatProcessingTime, getConfidenceColor, formatFileSize } from '../services/aiService';
+import { coreAIService } from '../services/coreAI.service';
+import { utilityIntegrationService } from '../services/utilityIntegration.service';
+import { DetectionResult, MediaType, AnalysisState } from '../types/ai.types';
+import { 
+  formatConfidence, 
+  formatProcessingTime, 
+  getConfidenceColor, 
+  formatFileSize,
+  getDetectionBadgeClass 
+} from '../utils/uiHelpers';
 
 interface AIDetectionProps {
   className?: string;
 }
-
-type MediaType = 'image' | 'video';
-type AnalysisState = 'idle' | 'uploading' | 'analyzing' | 'complete' | 'error';
 
 interface AnalysisProgress {
   state: AnalysisState;
@@ -96,10 +102,10 @@ export const AIDetection: React.FC<AIDetectionProps> = ({ className = '' }) => {
         message: 'Preparing file for analysis...'
       });
 
-      // Validate file format with AI canister
-      const isFormatValid = await aiService.validateFileFormat(selectedFile.name);
-      if (!isFormatValid) {
-        throw new Error('File format not supported by AI model');
+      // Validate file with AI canister integration
+      const validationResult = await utilityIntegrationService.validateFile(selectedFile);
+      if (!validationResult.success || !validationResult.data?.isValid) {
+        throw new Error(validationResult.error || 'File validation failed');
       }
 
       setAnalysisProgress({
@@ -108,14 +114,16 @@ export const AIDetection: React.FC<AIDetectionProps> = ({ className = '' }) => {
         message: 'Analyzing with AI model...'
       });
 
+      // Convert file to Uint8Array for AI canister
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+
       let analysisResult: DetectionResult;
 
       if (mediaType === 'image') {
-        analysisResult = await aiService.analyzeImage(selectedFile);
+        analysisResult = await coreAIService.analyzeImage(uint8Array);
       } else {
-        // For videos, use the direct video analysis
-        // The AI canister will handle frame extraction
-        analysisResult = await aiService.analyzeVideo(selectedFile);
+        analysisResult = await coreAIService.analyzeVideo(uint8Array);
       }
 
       setAnalysisProgress({
@@ -327,13 +335,6 @@ export const AIDetection: React.FC<AIDetectionProps> = ({ className = '' }) => {
                 <span className="font-medium text-sm">
                   {metadata.detection_method}
                 </span>
-              </div>
-            )}
-
-            {result.frames_analyzed && (
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Frames Analyzed:</span>
-                <span className="font-medium">{result.frames_analyzed}</span>
               </div>
             )}
 

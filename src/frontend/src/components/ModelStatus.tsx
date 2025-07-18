@@ -1,11 +1,14 @@
 /**
  * VeriChain AI Model Status Component
- * Monitors and displays AI model initialization and health status
+ * Professional monitoring and display interface for AI model initialization and health status
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, CheckCircle, AlertCircle, Loader, Info, Database, Zap } from 'lucide-react';
-import { aiService, InitializationStatus, formatFileSize } from '../services/aiService';
+import { RefreshCw, CheckCircle, AlertCircle, Loader, Info, Database, Zap, Play, SkipForward } from 'lucide-react';
+import { coreAIService } from '../services/coreAI.service';
+import { modelManagementService } from '../services/modelManagement.service';
+import { InitializationStatus } from '../types/ai.types';
+import { formatFileSize } from '../utils/uiHelpers';
 
 interface ModelStatusProps {
   className?: string;
@@ -13,49 +16,68 @@ interface ModelStatusProps {
   refreshInterval?: number;
 }
 
+interface StatusDisplayState {
+  loading: boolean;
+  error: string;
+  isRefreshing: boolean;
+}
+
 export const ModelStatus: React.FC<ModelStatusProps> = ({ 
   className = '', 
   autoRefresh = true,
   refreshInterval = 5000 
 }) => {
+  // State management
   const [status, setStatus] = useState<InitializationStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [modelInfo, setModelInfo] = useState<any>(null);
-  const [loadingStats, setLoadingStats] = useState<any>(null);
+  const [displayState, setDisplayState] = useState<StatusDisplayState>({
+    loading: true,
+    error: '',
+    isRefreshing: false
+  });
 
-  // Fetch status from AI canister
-  const fetchStatus = useCallback(async () => {
+  /**
+   * Fetch current status from AI canister
+   */
+  const fetchStatus = useCallback(async (): Promise<void> => {
     try {
-      setIsRefreshing(true);
-      setError('');
+      setDisplayState(prev => ({ ...prev, isRefreshing: true, error: '' }));
 
-      const [initStatus, info, stats] = await Promise.all([
-        aiService.getInitializationStatus(),
-        aiService.getModelInfo().catch(() => null),
-        aiService.getLoadingStats().catch(() => null)
+      const [statusResult, modelInfoResult] = await Promise.allSettled([
+        modelManagementService.getInitializationStatus(),
+        coreAIService.getModelInfo().catch(() => null)
       ]);
+
+      // Extract results safely
+      const initStatus = statusResult.status === 'fulfilled' ? statusResult.value : null;
+      const info = modelInfoResult.status === 'fulfilled' ? modelInfoResult.value : null;
 
       setStatus(initStatus);
       setModelInfo(info);
-      setLoadingStats(stats);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch model status';
-      setError(errorMessage);
-      console.error('Status fetch error:', err);
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
+      
+      setDisplayState(prev => ({ ...prev, loading: false, isRefreshing: false }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch model status';
+      setDisplayState(prev => ({ 
+        ...prev, 
+        error: errorMessage, 
+        loading: false, 
+        isRefreshing: false 
+      }));
+      console.error('Status fetch error:', error);
     }
   }, []);
 
-  // Initialize status on mount
+  /**
+   * Initialize status on component mount
+   */
   useEffect(() => {
     fetchStatus();
   }, [fetchStatus]);
 
-  // Auto-refresh status
+  /**
+   * Setup automatic status refresh
+   */
   useEffect(() => {
     if (!autoRefresh) return;
 
@@ -63,37 +85,53 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, fetchStatus]);
 
-  // Manual refresh
-  const handleRefresh = useCallback(() => {
+  /**
+   * Handle manual refresh
+   */
+  const handleRefresh = useCallback((): void => {
     fetchStatus();
   }, [fetchStatus]);
 
-  // Start model initialization
-  const startInitialization = useCallback(async () => {
+  /**
+   * Start model initialization process
+   */
+  const handleStartInitialization = useCallback(async (): Promise<void> => {
     try {
-      setError('');
-      await aiService.startStreamingInitialization();
+      setDisplayState(prev => ({ ...prev, error: '' }));
+      await modelManagementService.startStreamingInitialization();
       await fetchStatus();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to start initialization';
-      setError(errorMessage);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start initialization';
+      setDisplayState(prev => ({ ...prev, error: errorMessage }));
     }
   }, [fetchStatus]);
 
-  // Continue initialization batch
-  const continueInitialization = useCallback(async () => {
+  /**
+   * Continue initialization with batch processing
+   */
+  const handleContinueInitialization = useCallback(async (): Promise<void> => {
     try {
-      setError('');
-      await aiService.continueInitialization(10); // Process 10 chunks at a time
+      setDisplayState(prev => ({ ...prev, error: '' }));
+      await modelManagementService.continueInitialization(10);
       await fetchStatus();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to continue initialization';
-      setError(errorMessage);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to continue initialization';
+      setDisplayState(prev => ({ ...prev, error: errorMessage }));
     }
   }, [fetchStatus]);
 
-  // Render status indicators
-  const renderStatusIndicator = () => {
+  /**
+   * Calculate and format progress percentage
+   */
+  const getProgressPercentage = useCallback((): number => {
+    if (!status || status.total_chunks === 0) return 0;
+    return (status.processed_chunks / status.total_chunks) * 100;
+  }, [status]);
+
+  /**
+   * Render status indicator with appropriate styling
+   */
+  const renderStatusIndicator = (): JSX.Element | null => {
     if (!status) return null;
 
     if (status.is_initialized) {
@@ -122,11 +160,13 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({
     );
   };
 
-  // Render progress bar
-  const renderProgress = () => {
+  /**
+   * Render initialization progress bar
+   */
+  const renderProgressBar = (): JSX.Element | null => {
     if (!status || status.total_chunks === 0) return null;
 
-    const progressPercentage = (status.processed_chunks / status.total_chunks) * 100;
+    const progressPercentage = getProgressPercentage();
 
     return (
       <div className="space-y-2">
@@ -149,7 +189,41 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({
     );
   };
 
-  if (loading) {
+  /**
+   * Render action buttons based on current state
+   */
+  const renderActionButtons = (): JSX.Element | null => {
+    if (!status || status.is_initialized) return null;
+
+    return (
+      <div className="pt-4 border-t border-gray-200">
+        <div className="flex space-x-3">
+          {!status.initialization_started && (
+            <button
+              onClick={handleStartInitialization}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Play className="w-4 h-4" />
+              <span>Start Initialization</span>
+            </button>
+          )}
+          
+          {status.is_streaming && (
+            <button
+              onClick={handleContinueInitialization}
+              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <SkipForward className="w-4 h-4" />
+              <span>Continue Loading</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Loading state
+  if (displayState.loading) {
     return (
       <div className={`bg-white rounded-lg border border-gray-200 p-6 ${className}`}>
         <div className="flex items-center justify-center space-x-2">
@@ -162,7 +236,7 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({
 
   return (
     <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}>
-      {/* Header */}
+      {/* Header Section */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -173,51 +247,54 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({
           </div>
           <button
             onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+            disabled={displayState.isRefreshing}
+            className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50 transition-colors"
+            title="Refresh Status"
           >
-            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 ${displayState.isRefreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* Status Content */}
       <div className="p-4 space-y-4">
-        {error && (
+        {/* Error Display */}
+        {displayState.error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
             <div className="flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 text-red-500" />
-              <span className="text-red-700 text-sm">{error}</span>
+              <span className="text-red-700 text-sm">{displayState.error}</span>
             </div>
           </div>
         )}
 
-        {/* Status Indicator */}
+        {/* Current Status */}
         <div className="flex items-center justify-between">
-          <span className="text-gray-600">Current Status:</span>
+          <span className="text-gray-600 font-medium">Current Status:</span>
           {renderStatusIndicator()}
         </div>
 
-        {/* Progress */}
-        {renderProgress()}
+        {/* Progress Bar */}
+        {renderProgressBar()}
 
-        {/* Model Statistics */}
+        {/* Detailed Information Grid */}
         {status && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            {/* Initialization Information */}
             <div className="space-y-3">
               <h4 className="font-medium text-gray-900 flex items-center space-x-2">
                 <Info className="w-4 h-4" />
-                <span>Initialization Info</span>
+                <span>Initialization Details</span>
               </h4>
               
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Chunks Processed:</span>
-                  <span className="font-medium">{status.processed_chunks}</span>
+                  <span className="font-medium">{status.processed_chunks.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Chunks:</span>
-                  <span className="font-medium">{status.total_chunks}</span>
+                  <span className="font-medium">{status.total_chunks.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Current Size:</span>
@@ -234,11 +311,12 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({
               </div>
             </div>
 
+            {/* Model Information */}
             {modelInfo && (
               <div className="space-y-3">
                 <h4 className="font-medium text-gray-900 flex items-center space-x-2">
                   <Zap className="w-4 h-4" />
-                  <span>Model Info</span>
+                  <span>Model Specifications</span>
                 </h4>
                 
                 <div className="space-y-2 text-sm">
@@ -246,22 +324,28 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({
                     <span className="text-gray-600">Version:</span>
                     <span className="font-medium">{modelInfo.version}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Input Size:</span>
-                    <span className="font-medium">
-                      {modelInfo.input_size[0]}×{modelInfo.input_size[1]}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Max File Size:</span>
-                    <span className="font-medium">{modelInfo.max_file_size_mb}MB</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Threshold:</span>
-                    <span className="font-medium">
-                      {(modelInfo.confidence_threshold * 100).toFixed(1)}%
-                    </span>
-                  </div>
+                  {modelInfo.input_size && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Input Size:</span>
+                      <span className="font-medium">
+                        {modelInfo.input_size[0]}×{modelInfo.input_size[1]}
+                      </span>
+                    </div>
+                  )}
+                  {modelInfo.max_file_size_mb && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Max File Size:</span>
+                      <span className="font-medium">{modelInfo.max_file_size_mb}MB</span>
+                    </div>
+                  )}
+                  {modelInfo.confidence_threshold && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Threshold:</span>
+                      <span className="font-medium">
+                        {(modelInfo.confidence_threshold * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -269,43 +353,7 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({
         )}
 
         {/* Action Buttons */}
-        {status && !status.is_initialized && (
-          <div className="pt-4 border-t border-gray-200">
-            <div className="flex space-x-3">
-              {!status.initialization_started && (
-                <button
-                  onClick={startInitialization}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Start Initialization
-                </button>
-              )}
-              
-              {status.is_streaming && (
-                <button
-                  onClick={continueInitialization}
-                  className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  Continue Loading
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Loading Statistics */}
-        {loadingStats && (
-          <details className="mt-4">
-            <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
-              Loading Statistics
-            </summary>
-            <div className="mt-2 p-3 bg-gray-50 rounded text-sm">
-              <pre className="whitespace-pre-wrap text-gray-600">
-                {JSON.stringify(loadingStats, null, 2)}
-              </pre>
-            </div>
-          </details>
-        )}
+        {renderActionButtons()}
       </div>
     </div>
   );
