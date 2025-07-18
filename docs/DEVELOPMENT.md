@@ -37,7 +37,7 @@ make clean-setup    # Clean reset (keeps dependencies)
 make status         # Check what's running
 ```
 
-### Manual Setup (Advanced Users)
+### Manual Setup
 
 ```bash
 # Step by step manual setup

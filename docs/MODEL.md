@@ -14,7 +14,7 @@ VeriChain utilizes a fine-tuned Vision Transformer (ViT) model specifically trai
 
 ### Vision Transformer (ViT)
 
-The VeriChain model is based on the Vision Transformer architecture, optimized for deepfake detection with state-of-the-art performance.
+The VeriChain model is based on the Vision Transformer architecture, optimized for deepfake detection with high performance.
 
 **Key Specifications**:
 - **Input Size**: 224×224 pixels
@@ -52,7 +52,7 @@ Evaluated on a held-out test set of 2,000 images:
 
 ### VeriChain Deepfake Dataset
 
-The model is trained on a comprehensive dataset available at [einrafh/verichain-deepfake-data](https://huggingface.co/datasets/einrafh/verichain-deepfake-data).
+The model is trained on a curated dataset available at [einrafh/verichain-deepfake-data](https://huggingface.co/datasets/einrafh/verichain-deepfake-data).
 
 **Dataset Composition**:
 - **Total Images**: 50,000+ curated samples

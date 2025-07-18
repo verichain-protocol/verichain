@@ -1,8 +1,8 @@
 # VeriChain
 
-**Professional Deepfake Detection Platform on Internet Computer Protocol**
+**Deepfake Detection Platform on Internet Computer Protocol**
 
-VeriChain is a production-ready blockchain-powered deepfake detection platform utilizing a fine-tuned Vision Transformer (ViT) model with 99.90% accuracy to identify real, AI-generated, and deepfake content across multiple media formats.
+VeriChain is a blockchain-powered deepfake detection platform utilizing a fine-tuned Vision Transformer (ViT) model with 99.90% accuracy to identify real, AI-generated, and deepfake content across multiple media formats.
 
 ## 🔗 Resources & Links
 
@@ -18,7 +18,7 @@ VeriChain is a production-ready blockchain-powered deepfake detection platform u
 
 ## ✨ Key Features
 
-- **Advanced AI Detection**: Vision Transformer model with 99.90% accuracy
+- **AI Detection**: Vision Transformer model with 99.90% accuracy
 - **Multi-Format Support**: JPG, PNG, JPEG, MP4, MOV analysis
 - **Social Media Integration**: Direct analysis of YouTube, Instagram, TikTok, Twitter, Facebook
 - **Flexible User Tiers**: Guest (3 analyses), Registered (30/month), Premium (1000/month)

@@ -2,7 +2,7 @@
 
 ## Overview
 
-VeriChain provides a comprehensive API for deepfake detection accessible through direct canister calls (ICP) and REST endpoints. The frontend uses real-time TypeScript integration with `@dfinity/agent`.
+VeriChain provides a complete API for deepfake detection accessible through direct canister calls (ICP) and REST endpoints. The frontend uses real-time TypeScript integration with `@dfinity/agent`.
 
 ## Integration Methods
 
@@ -55,47 +55,72 @@ For non-ICP applications, use standard HTTP endpoints.
 
 ## Authentication & User Tiers
 
-VeriChain operates with a three-tier user system:
+VeriChain operates with a three-tier user system with **API access restricted to Premium users only**.
 
-### User Tiers
+### User Tiers & Access
 
-| Tier | Authentication | Monthly Limit | Features |
-|------|----------------|---------------|----------|
-| **Guest (Non-login)** | None required | 3 analyses | Basic detection only |
-| **Registered User** | Login required | 30 analyses | Full API access, history |
-| **Premium User** | Login + subscription | 1,000 analyses | Priority processing, advanced features |
+| Tier | Authentication | Monthly Limit | Website Access | API Access |
+|------|----------------|---------------|----------------|------------|
+| **Guest (Non-login)** | None required | 3 analyses (lifetime) | ✅ verichain.app only | ❌ No API access |
+| **Registered User** | Login required | 30 analyses/month | ✅ verichain.app only | ❌ No API access |
+| **Premium User** | Login + subscription | 1,000 analyses/month | ✅ verichain.app + API | ✅ Full API access |
+
+### Access Restrictions
+
+#### Website Access (verichain.app)
+- **Available to**: All user tiers (Guest, Registered, Premium)
+- **Features**: Full deepfake detection interface
+- **Usage**: Counts towards user's monthly quota
+
+#### API Access (External Integration)
+- **Available to**: **Premium users ONLY**
+- **Requirement**: Valid API key from Premium subscription
+- **Use case**: Integrate deepfake detection into your own applications
+- **Rate limit**: 10 requests per minute
 
 ### Authentication Methods
 
-#### Guest Usage (No Authentication)
+#### Website Usage (All Tiers)
+All users can access verichain.app directly without API integration:
+
 ```typescript
-// Direct API calls without authentication
-const response = await fetch('/analyze_image', {
-  method: 'POST',
-  body: imageFile,
-  headers: { 'Content-Type': 'application/octet-stream' }
-});
+// Frontend usage - available to all tiers
+import { CoreAIService } from './services/coreAI.service';
+const aiService = new CoreAIService();
+const result = await aiService.analyzeImage(imageFile);
 ```
 
-#### Registered/Premium Users
+#### API Usage (Premium Only)
+Premium users can integrate VeriChain into their own applications:
+
 ```typescript
-// With authentication token
-const response = await fetch('/analyze_image', {
+// API integration - Premium users only
+const response = await fetch('https://api.verichain.app/analyze_image', {
   method: 'POST',
   body: imageFile,
   headers: {
     'Content-Type': 'application/octet-stream',
-    'Authorization': 'Bearer your-auth-token'
+    'X-API-Key': 'your-premium-api-key'
   }
 });
 ```
 
+**⚠️ Important**: API endpoints require Premium subscription and valid API key.
+
 ### Rate Limits & Quotas
 
-- **Guest Users**: 3 analyses total (lifetime limit)
-- **Registered Users**: 30 analyses per month (resets monthly)
-- **Premium Users**: 1,000 analyses per month (resets monthly)
-- **API Rate Limit**: 10 requests per minute (all tiers)
+- **Guest Users**: 3 analyses (lifetime limit) - Website only
+- **Registered Users**: 30 analyses per month - Website only
+- **Premium Users**: 1,000 analyses per month - Website + API access
+- **API Rate Limit**: 10 requests per minute (Premium users only)
+
+### API Access Policy
+
+🚨 **IMPORTANT**: API endpoints are **Premium-only features**
+
+- **Guest & Registered users**: Can only use verichain.app website
+- **Premium users**: Full access to both website and API endpoints
+- **API Key Required**: All API requests must include valid Premium API key
 
 ## Core Endpoints
 
@@ -265,8 +290,9 @@ All endpoints return consistent error formats:
 - `RATE_LIMIT_EXCEEDED`: API rate limit exceeded (10 req/min)
 - `QUOTA_EXCEEDED`: Monthly quota limit reached
 - `GUEST_LIMIT_REACHED`: Guest user reached 3-analysis limit
-- `AUTH_REQUIRED`: Authentication needed for this tier
-- `INVALID_TOKEN`: Authentication token invalid or expired
+- `API_ACCESS_DENIED`: API access requires Premium subscription
+- `INVALID_API_KEY`: API key invalid, expired, or not Premium
+- `PREMIUM_REQUIRED`: Feature requires Premium subscription
 
 ## Rate Limits
 
