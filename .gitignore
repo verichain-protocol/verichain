@@ -47,7 +47,9 @@ src/ai_canister/assets/*.pt
 src/ai_canister/assets/*.h5
 src/ai_canister/assets/*.tflite
 src/ai_canister/assets/model_chunk_*.bin
-# Keep metadata and config files
+
+# Keep metadata and config files - these are needed for development
+!src/ai_canister/assets/*_config.json
 !src/ai_canister/assets/model_metadata.json
 !src/ai_canister/assets/*.json
 !src/ai_canister/assets/*.yaml
