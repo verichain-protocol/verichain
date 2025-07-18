@@ -33,15 +33,43 @@ VeriChain is a decentralized platform that leverages AI for deepfake detection i
 git clone https://github.com/verichain-protocol/verichain.git
 cd verichain
 
+# Setup environment configuration
+cp .env.example .env
+# Edit .env with your specific configuration
+
 # Complete setup (installs dependencies, downloads model, builds project)
-make setup
+make full-setup
 
 # Start development environment
 make dev
-
-# Full setup with model upload and initialization (recommended for production)
-make full-setup
 ```
+
+### Environment Configuration
+
+VeriChain uses environment variables for configuration. Create your `.env` file from the template:
+
+```bash
+cp .env.example .env
+```
+
+Key configuration options:
+
+```bash
+# Model chunking (affects memory usage and upload performance)
+MODEL_CHUNK_SIZE_MB=0.8          # Recommended: 0.8MB for ICP compatibility
+
+# Model source (point to your trained model)
+MODEL_DOWNLOAD_URL='https://huggingface.co/einrafh/verichain-deepfake-models/resolve/main/models/onnx/verichain-model.onnx'
+
+# Network selection
+DEPLOY_NETWORK=local             # Options: local, ic, playground
+```
+
+**Important Notes:**
+- Never commit `.env` to version control (already in `.gitignore`)
+- DFX-generated variables are auto-managed - don't modify them manually
+- Smaller chunk sizes = better memory efficiency but more upload chunks
+- Update `.env.example` when adding new configuration options
 
 ### Quick Setup Options
 
