@@ -9,6 +9,14 @@ export interface DetectionResult {
   metadata: string;
   model_version?: string;
   analysis_details?: AnalysisDetails;
+  user_info?: UserQuotaInfo;
+}
+
+export interface UserQuotaInfo {
+  tier: 'guest' | 'registered' | 'premium';
+  remaining_quota: number;
+  quota_resets_at: string | null; // ISO 8601 date, null for guest
+  total_quota: number;
 }
 
 export interface AnalysisDetails {
@@ -67,10 +75,52 @@ export interface PerformanceMetrics {
 
 export interface HashResult {
   sha256: string;
-  file_size: number;
-  chunk_hashes?: string[];
-  verification_status: 'verified' | 'failed' | 'pending';
+  verified: boolean;
+  timestamp: number;
 }
+
+// User Authentication & Tier System
+export interface UserTier {
+  type: 'guest' | 'registered' | 'premium';
+  monthly_quota: number;
+  features: string[];
+  priority_processing: boolean;
+}
+
+export interface AuthToken {
+  token: string;
+  expires_at: string;
+  user_id: string;
+  tier: UserTier;
+}
+
+export interface QuotaStatus {
+  remaining: number;
+  total: number;
+  resets_at: string | null;
+  tier: 'guest' | 'registered' | 'premium';
+}
+
+export const USER_TIERS: Record<string, UserTier> = {
+  guest: {
+    type: 'guest',
+    monthly_quota: 3,
+    features: ['basic_detection'],
+    priority_processing: false
+  },
+  registered: {
+    type: 'registered', 
+    monthly_quota: 30,
+    features: ['basic_detection', 'history', 'batch_processing'],
+    priority_processing: false
+  },
+  premium: {
+    type: 'premium',
+    monthly_quota: 1000,
+    features: ['basic_detection', 'history', 'batch_processing', 'api_access', 'priority_support'],
+    priority_processing: true
+  }
+};
 
 export type MediaType = 'image' | 'video';
 export type AnalysisState = 'idle' | 'uploading' | 'analyzing' | 'complete' | 'error';

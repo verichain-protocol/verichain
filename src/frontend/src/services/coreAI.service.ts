@@ -4,6 +4,7 @@
 import { HttpAgent } from '@dfinity/agent';
 import { createActor } from '../../../declarations/ai_canister';
 import { DetectionResult, ModelInfo } from '../types/ai.types';
+import { authService } from './auth.service';
 
 // Browser polyfill for global object
 (globalThis as any).global = globalThis;
@@ -62,8 +63,25 @@ export class CoreAIService {
   async analyzeImage(imageData: Uint8Array): Promise<DetectionResult> {
     await this.ensureActor();
     
+    // Check user quota before processing
+    const quotaCheck = await authService.canPerformAnalysis();
+    if (!quotaCheck.allowed) {
+      throw new Error(quotaCheck.reason || 'Analysis not allowed');
+    }
+    
     try {
-      const result = await this.actor.analyze_image(Array.from(imageData));
+      // Include auth token if available
+      const authToken = authService.getAuthToken();
+      const result = await this.actor.analyze_image(
+        Array.from(imageData),
+        authToken ? { auth_token: authToken } : {}
+      );
+      
+      // Record usage after successful analysis
+      authService.recordAnalysisUsage();
+      
+      // Get updated quota info
+      const quotaStatus = await authService.getQuotaStatus();
       
       return {
         is_deepfake: result.is_deepfake,
@@ -72,6 +90,12 @@ export class CoreAIService {
         processing_time_ms: result.processing_time_ms || 0,
         metadata: result.metadata || '{}',
         model_version: result.model_version,
+        user_info: {
+          tier: quotaStatus.tier,
+          remaining_quota: quotaStatus.remaining,
+          quota_resets_at: quotaStatus.resets_at,
+          total_quota: quotaStatus.total
+        },
         analysis_details: result.analysis_details ? {
           classification: result.analysis_details.classification,
           class_confidence: result.analysis_details.class_confidence,
@@ -94,8 +118,25 @@ export class CoreAIService {
   async analyzeVideo(videoData: Uint8Array): Promise<DetectionResult> {
     await this.ensureActor();
     
+    // Check user quota before processing
+    const quotaCheck = await authService.canPerformAnalysis();
+    if (!quotaCheck.allowed) {
+      throw new Error(quotaCheck.reason || 'Analysis not allowed');
+    }
+    
     try {
-      const result = await this.actor.analyze_video(Array.from(videoData));
+      // Include auth token if available
+      const authToken = authService.getAuthToken();
+      const result = await this.actor.analyze_video(
+        Array.from(videoData),
+        authToken ? { auth_token: authToken } : {}
+      );
+      
+      // Record usage after successful analysis
+      authService.recordAnalysisUsage();
+      
+      // Get updated quota info
+      const quotaStatus = await authService.getQuotaStatus();
       
       return {
         is_deepfake: result.is_deepfake,
@@ -104,6 +145,12 @@ export class CoreAIService {
         processing_time_ms: result.processing_time_ms || 0,
         metadata: result.metadata || '{}',
         model_version: result.model_version,
+        user_info: {
+          tier: quotaStatus.tier,
+          remaining_quota: quotaStatus.remaining,
+          quota_resets_at: quotaStatus.resets_at,
+          total_quota: quotaStatus.total
+        },
         analysis_details: result.analysis_details ? {
           classification: result.analysis_details.classification,
           class_confidence: result.analysis_details.class_confidence,
@@ -154,6 +201,20 @@ export class CoreAIService {
       console.error('❌ Failed to check model status:', error);
       return false;
     }
+  }
+
+  /**
+   * Get current user quota status
+   */
+  async getUserQuotaStatus() {
+    return await authService.getQuotaStatus();
+  }
+
+  /**
+   * Check if user can perform analysis
+   */
+  async canUserAnalyze() {
+    return await authService.canPerformAnalysis();
   }
 
   /**
