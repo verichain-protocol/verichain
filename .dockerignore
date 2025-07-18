@@ -1,53 +1,51 @@
 # VeriChain Docker Ignore
 
-# Git and development
+# Development files
 .git
-.gitignore
 .github/
+.vscode/
+.idea/
 
-# Documentation
+# Documentation and configs
 README.md
 docs/
 *.md
+Makefile
 
-# Development state and caches
+# Build artifacts and caches
 .dfx/
 .mops/
 node_modules/
 target/
-*.log
+dist/
+build/
 .cache/
 .cargo/
+*.log
 
-# Environment files
+# Environment and secrets
 .env
 .env.*
 !.env.example
 
-# Development tools
+# Docker files
 Dockerfile*
 docker-compose*.yml
 .dockerignore
-Makefile
+
+# Development tools
 tools/
 scripts/
+test-files/
 
-# IDE files
-.vscode/
-.idea/
+# OS and IDE files
+.DS_Store
+Thumbs.db
 **/*~
 *.swp
 
-# OS files
-.DS_Store
-Thumbs.db
-
-# Build artifacts
-dist/
-build/
-coverage/
-
-# Model binaries (large files)
+# Model chunks (will be built in container)
+src/ai_canister/assets/*.bin
 src/ai_canister/assets/*.bin
 src/ai_canister/assets/*.onnx
 

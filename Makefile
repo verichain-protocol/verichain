@@ -1,253 +1,225 @@
-# VeriChain Makefile - Build and Development Tools
-.PHONY: help full-setup check-deps install-deps download-model build deploy clean clean-model verify start stop dev test
-.PHONY: docker-build docker-dev docker-stop docker-clean upload-model test-performance integration-test
-.PHONY: qa-suite status health logs update package
+# VeriChain Professional Makefile
+# Professional build system for VeriChain deepfake detection platform
+
+.PHONY: help install setup dev build deploy test clean status check
+
+# Default target
 .DEFAULT_GOAL := help
 
+# Configuration
+SCRIPTS_DIR := scripts
+SRC_DIR := src
+BUILD_DIR := target
+FRONTEND_DIR := $(SRC_DIR)/frontend
+
+# Colors for output
+GREEN := \033[32m
+YELLOW := \033[33m
+RED := \033[31m
+NC := \033[0m
+
+define print_success
+	@echo "$(GREEN)[SUCCESS]$(NC) $(1)"
+endef
+
+define print_warning
+	@echo "$(YELLOW)[WARNING]$(NC) $(1)"
+endef
+
+define print_error
+	@echo "$(RED)[ERROR]$(NC) $(1)"
+endef
+
+## Help
 help: ## Show this help message
-	@echo "🔧 VeriChain Build System"
-	@echo "========================="
+	@echo "VeriChain Professional Build System"
+	@echo "=================================="
 	@echo ""
-	@echo "🚀 NEW TO THIS PROJECT? START HERE:"
-	@echo "   make full-setup          # Complete automated setup (RECOMMENDED)"
+	@echo "Available commands:"
 	@echo ""
-	@echo "🔄 ALREADY SET UP? USE:"
-	@echo "   make dev                 # Start development environment"
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ { printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@echo ""
-	@echo "🤔 COMMAND GUIDE:"
-	@echo "   full-setup = Complete first-time setup (all dependencies + model + build + deploy)"
-	@echo "   dev        = Daily development workflow (start DFX + deploy canisters)"
-	@echo "   build      = Build project components only"
-	@echo "   test       = Run comprehensive test suite"
-	@echo "   clean      = Remove all build artifacts and reset environment"
-	@echo ""
-	@echo "📋 ALL AVAILABLE COMMANDS:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
-# =============================================================================
-# MAIN SETUP - Choose one based on your situation
-# =============================================================================
+## Setup Commands
+check: ## Check prerequisites and system requirements
+	@echo "Checking system prerequisites..."
+	@bash $(SCRIPTS_DIR)/setup.sh check_prerequisites
+	$(call print_success,"Prerequisites check completed")
 
-full-setup: ## 🚀 Complete automated setup (new users - downloads model, builds everything)
-	@echo "🚀 VeriChain Complete Setup"
-	@echo "============================"
-	@echo "This performs EVERYTHING needed for a fresh installation:"
-	@echo "• ✅ Check system dependencies"
-	@echo "• 📦 Install project dependencies"
-	@echo "• 📥 Download ONNX model from Hugging Face (~327MB)"
-	@echo "• ✂️  Convert model to chunks for ICP deployment"
-	@echo "• 🔨 Build all project components"
-	@echo "• 🚀 Start local Internet Computer network"
-	@echo "• 🏗️  Deploy canisters"
-	@echo "• 📤 Upload model to AI canister"
-	@echo ""
-	@read -p "Continue with full setup? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
-	@$(MAKE) check-deps
-	@$(MAKE) install-deps
-	@$(MAKE) clean-model
-	@$(MAKE) download-model
-	@$(MAKE) start
-	@$(MAKE) deploy
-	@$(MAKE) build
-	@$(MAKE) upload-model
-	@echo ""
-	@echo "🎉 SETUP COMPLETE!"
-	@echo "✅ VeriChain is fully ready to use!"
-	@echo "🌐 Frontend: http://u6s2n-gx777-77774-qaaba-cai.localhost:4943/"
-	@echo "🔧 Candid UI: http://127.0.0.1:4943/?canisterId=$$(dfx canister id __Candid_UI)"
-	@echo "💡 Next time just use 'make dev' to start development"
+install: ## Install all dependencies
+	@echo "Installing dependencies..."
+	@npm install
+	@cd $(FRONTEND_DIR) && npm install
+	$(call print_success,"Dependencies installed")
 
-# =============================================================================
-# DEPENDENCY MANAGEMENT
-# =============================================================================
+setup: ## Complete project setup with model deployment
+	@echo "Running complete VeriChain setup..."
+	@bash $(SCRIPTS_DIR)/setup.sh
+	$(call print_success,"Complete setup finished")
 
-check-deps: ## 🔍 Check system dependencies
-	@echo "🔍 Checking system dependencies..."
-	@echo "Node.js: $$(node --version 2>/dev/null || echo '❌ NOT INSTALLED')"
-	@echo "NPM: $$(npm --version 2>/dev/null || echo '❌ NOT INSTALLED')"
-	@echo "Rust: $$(rustc --version 2>/dev/null || echo '❌ NOT INSTALLED')"
-	@echo "Cargo: $$(cargo --version 2>/dev/null || echo '❌ NOT INSTALLED')"
-	@echo "DFX: $$(dfx --version 2>/dev/null || echo '❌ NOT INSTALLED')"
-	@echo "Python3: $$(python3 --version 2>/dev/null || echo '❌ NOT INSTALLED')"
-	@echo "Curl: $$(curl --version 2>/dev/null | head -1 || echo '❌ NOT INSTALLED')"
-	@echo ""
-	@echo "⚠️  Please ensure all dependencies above are installed!"
-	@echo "📖 Installation guide: https://internetcomputer.org/docs/current/developer-docs/setup/install/"
+model-setup: ## Download and prepare AI model only
+	@echo "Setting up AI model..."
+	@bash $(SCRIPTS_DIR)/setup.sh download_model
+	@bash $(SCRIPTS_DIR)/setup.sh chunk_model
+	$(call print_success,"Model setup completed")
 
-install-deps: ## 📦 Install project dependencies
-	@echo "📦 Installing project dependencies..."
-	@chmod +x scripts/*.sh
-	@echo "  🦀 Installing Rust dependencies..."
-	@cargo build --release --quiet
-	@echo "  🌐 Installing Frontend dependencies (NPM workspace)..."
-	@npm install --silent
-	@echo "✅ Dependencies installed successfully!"
+## Development Commands
+dev: ## Start complete development environment
+	@echo "Starting development environment..."
+	@bash $(SCRIPTS_DIR)/dev.sh
+	$(call print_success,"Development environment started")
 
-download-model: ## 📥 Download and convert ONNX model
-	@echo "📥 Downloading and converting ONNX model..."
-	@if [ -f "src/ai_canister/assets/model_metadata.json" ]; then \
-		echo "⚠️  Model already exists. Remove with 'make clean-model' first if you want to re-download."; \
-		exit 0; \
-	fi
-	@echo "🔄 Setting up model files..."
-	@./scripts/model-setup.sh
-	@echo "✅ Model ready!"
+dev-frontend: ## Start only frontend development server
+	@echo "Starting frontend development server..."
+	@cd $(FRONTEND_DIR) && npm start
 
-# =============================================================================
-# BUILD SYSTEM
-# =============================================================================
+dev-build: ## Fast development build
+	@echo "Running development build..."
+	@bash $(SCRIPTS_DIR)/build.sh dev
+	$(call print_success,"Development build completed")
 
-build: ## 🔨 Build all components for production
-	@echo "🔨 Building for production..."
-	@./scripts/build.sh --production
-	@echo "✅ Build completed."
+## Build Commands
+build: ## Production build
+	@echo "Running production build..."
+	@bash $(SCRIPTS_DIR)/build.sh
+	$(call print_success,"Production build completed")
 
-# =============================================================================
-# DEVELOPMENT ENVIRONMENT
-# =============================================================================
+build-frontend: ## Build frontend only
+	@echo "Building frontend..."
+	@cd $(FRONTEND_DIR) && npm run build
+	$(call print_success,"Frontend build completed")
 
-start: ## 🟢 Start DFX replica in background
-	@echo "🟢 Starting DFX replica..."
-	@if dfx ping local >/dev/null 2>&1; then \
-		echo "✅ DFX replica is already running."; \
-	else \
-		dfx start --background --clean; \
-		echo "✅ DFX replica started."; \
-	fi
+build-canister: ## Build canisters only
+	@echo "Building canisters..."
+	@cargo build --release --target wasm32-unknown-unknown
+	$(call print_success,"Canister build completed")
 
-stop: ## 🔴 Stop DFX replica
-	@echo "🔴 Stopping DFX replica..."
+## Deployment Commands
+deploy: ## Deploy to configured network
+	@echo "Deploying VeriChain..."
+	@bash $(SCRIPTS_DIR)/deploy.sh
+	$(call print_success,"Deployment completed")
+
+deploy-local: ## Deploy to local network
+	@echo "Deploying to local network..."
+	@DEPLOY_NETWORK=local bash $(SCRIPTS_DIR)/deploy.sh
+	$(call print_success,"Local deployment completed")
+
+deploy-ic: ## Deploy to Internet Computer mainnet
+	@echo "Deploying to Internet Computer..."
+	@DEPLOY_NETWORK=ic bash $(SCRIPTS_DIR)/deploy.sh
+	$(call print_success,"IC deployment completed")
+
+## Testing Commands
+test: ## Run all tests
+	@echo "Running complete test suite..."
+	@bash $(SCRIPTS_DIR)/test.sh
+	$(call print_success,"All tests completed")
+
+test-health: ## Quick health check
+	@echo "Running health checks..."
+	@bash $(SCRIPTS_DIR)/test.sh health
+	$(call print_success,"Health check completed")
+
+test-model: ## Test AI model functionality
+	@echo "Testing AI model..."
+	@bash $(SCRIPTS_DIR)/test.sh model
+	$(call print_success,"Model tests completed")
+
+test-performance: ## Performance benchmarking
+	@echo "Running performance tests..."
+	@bash $(SCRIPTS_DIR)/test-performance.sh
+	$(call print_success,"Performance tests completed")
+
+test-integration: ## Integration testing
+	@echo "Running integration tests..."
+	@bash $(SCRIPTS_DIR)/test.sh integration
+	$(call print_success,"Integration tests completed")
+
+qa-suite: ## Complete quality assurance suite
+	@echo "Running QA suite..."
+	@bash $(SCRIPTS_DIR)/test.sh qa
+	$(call print_success,"QA suite completed")
+
+## Maintenance Commands
+clean: ## Clean build artifacts and temporary files
+	@echo "Cleaning build artifacts..."
+	@rm -rf $(BUILD_DIR)
+	@rm -rf $(FRONTEND_DIR)/dist
+	@rm -rf $(FRONTEND_DIR)/node_modules/.cache
+	@rm -rf .dfx/local
+	@rm -rf temp/
+	@find . -name "*.log" -delete
+	$(call print_success,"Cleanup completed")
+
+clean-full: ## Full clean including dependencies
+	@echo "Full cleanup including dependencies..."
+	@$(MAKE) clean
+	@rm -rf node_modules
+	@rm -rf $(FRONTEND_DIR)/node_modules
+	@rm -rf $(BUILD_DIR)
+	$(call print_success,"Full cleanup completed")
+
+reset: ## Reset project to clean state
+	@echo "Resetting project..."
+	@$(MAKE) clean-full
 	@dfx stop
-	@echo "✅ DFX replica stopped."
+	@rm -rf .dfx
+	$(call print_warning,"Project reset - run 'make setup' to reinitialize")
 
-deploy: ## 🚀 Deploy canisters to local network
-	@echo "🚀 Deploying canisters..."
-	@if ! dfx canister id ai_canister >/dev/null 2>&1; then \
-		echo "🏗️  Creating canisters first..."; \
-		dfx canister create --all; \
-	fi
-	@dfx deploy
-	@echo "✅ Deployment completed."
-
-dev: ## 🎮 Start development environment (assumes setup is done)
-	@echo "🎮 Starting development environment..."
-	@$(MAKE) start
-	@$(MAKE) deploy
-	@echo "🎉 Development environment ready!"
-	@echo "🌐 Frontend: http://u6s2n-gx777-77774-qaaba-cai.localhost:4943/"
-	@echo "🔧 Candid UI: http://127.0.0.1:4943/?canisterId=$$(dfx canister id __Candid_UI)"
-
-# =============================================================================
-# TESTING
-# =============================================================================
-
-test: ## 🧪 Run all tests
-	@echo "🧪 Running tests..."
-	@cargo test
-	@cd src/frontend && npm test
-	@dfx canister call ai_canister health_check
-	@echo "✅ All tests completed."
-
-test-performance: ## ⚡ Run performance tests
-	@echo "⚡ Running performance tests..."
-	@./scripts/test-performance-advanced.sh
-	@echo "✅ Performance testing completed."
-
-integration-test: ## 🎯 Run comprehensive integration test
-	@echo "🎯 Running final integration test..."
-	@./scripts/final-integration-test.sh
-	@echo "✅ Integration testing completed."
-
-qa-suite: test-performance integration-test ## 🏆 Run complete QA test suite
-	@echo "🏆 All QA tests completed successfully!"
-
-# =============================================================================
-# MODEL OPERATIONS
-# =============================================================================
-
-upload-model: ## 📤 Upload model chunks to AI canister
-	@echo "📤 Uploading model to canister..."
-	@./scripts/upload-model.sh
-	@echo "✅ Model upload completed."
-
-# =============================================================================
-# MAINTENANCE
-# =============================================================================
-
-clean: ## 🧹 Clean all build artifacts
-	@echo "🧹 Cleaning build artifacts..."
-	@cargo clean
-	@rm -rf .dfx target
-	@rm -rf src/frontend/dist node_modules
-	@echo "✅ Cleanup completed."
-
-clean-model: ## 🗑️ Remove downloaded model files only
-	@echo "🗑️ Removing model files..."
-	@rm -rf src/ai_canister/assets/
-	@echo "✅ Model files removed."
-
-verify: ## ✅ Verify project setup is complete
-	@echo "✅ Verifying VeriChain setup..."
-	@echo "🔍 Checking components:"
-	@echo -n "  📦 Rust dependencies: "; [ -f "target/wasm32-unknown-unknown/release/ai_canister.wasm" ] && echo "✅" || echo "❌ Run 'make install-deps'"
-	@echo -n "  🌐 Frontend dependencies: "; [ -d "node_modules" ] && echo "✅" || echo "❌ Run 'make install-deps'"
-	@echo -n "  🤖 Model files: "; [ -f "src/ai_canister/assets/model_metadata.json" ] && echo "✅" || echo "❌ Run 'make download-model'"
-	@echo -n "  🔨 Frontend build: "; [ -d "src/frontend/dist" ] && echo "✅" || echo "❌ Run 'make build'"
-	@echo -n "  🟢 DFX running: "; dfx ping local >/dev/null 2>&1 && echo "✅" || echo "❌ Run 'make start'"
-	@echo -n "  🚀 Canisters deployed: "; dfx canister id ai_canister >/dev/null 2>&1 && echo "✅" || echo "❌ Run 'make deploy'"
+## Status Commands
+status: ## Check project status
+	@echo "VeriChain Project Status"
+	@echo "======================="
 	@echo ""
-	@if [ -f "target/wasm32-unknown-unknown/release/ai_canister.wasm" ] && [ -d "node_modules" ] && [ -f "src/ai_canister/assets/model_metadata.json" ] && [ -d "src/frontend/dist" ] && dfx ping local >/dev/null 2>&1 && dfx canister id ai_canister >/dev/null 2>&1; then \
-		echo "🎉 VeriChain is fully set up and ready!"; \
-		echo "🌐 Frontend: http://u6s2n-gx777-77774-qaaba-cai.localhost:4943/"; \
-	else \
-		echo "⚠️  Setup incomplete. Run 'make full-setup' to complete."; \
-	fi
+	@echo "DFX Status:"
+	@dfx ping && echo "✅ DFX is running" || echo "❌ DFX is not running"
+	@echo ""
+	@echo "Canister Status:"
+	@dfx canister status --all 2>/dev/null || echo "❌ Canisters not deployed"
+	@echo ""
+	@echo "Frontend Status:"
+	@if [ -d "$(FRONTEND_DIR)/dist" ]; then echo "✅ Frontend built"; else echo "❌ Frontend not built"; fi
+	@echo ""
 
-status: ## 📊 Show project status
-	@echo "📊 VeriChain Project Status"
-	@echo "=========================="
-	@echo "DFX Status: $$(dfx ping local 2>/dev/null && echo 'Running' || echo 'Stopped')"
-	@echo "Frontend built: $$([ -d src/frontend/dist ] && echo 'Yes' || echo 'No')"
-	@echo "Model present: $$([ -f src/ai_canister/assets/model_metadata.json ] && echo 'Yes' || echo 'No')"
-	@echo "Canisters: $$(dfx canister status ai_canister 2>/dev/null | grep Status || echo 'Not deployed')"
+health: ## Comprehensive health check
+	@echo "Running comprehensive health check..."
+	@bash $(SCRIPTS_DIR)/test.sh health-detailed
+	$(call print_success,"Health check completed")
 
-health: ## 🏥 Quick health check of all components
-	@echo "🏥 VeriChain Health Check"
-	@echo "========================"
-	@echo -n "🟢 DFX: "; dfx ping local >/dev/null 2>&1 && echo "Healthy" || echo "❌ Down"
-	@echo -n "🤖 AI Canister: "; dfx canister call ai_canister health_check 2>/dev/null >/dev/null && echo "Healthy" || echo "❌ Unhealthy"
-	@echo -n "🔧 Logic Canister: "; dfx canister status logic_canister >/dev/null 2>&1 && echo "Healthy" || echo "❌ Down"
+## Utility Commands
+logs: ## Show recent logs
+	@echo "Recent VeriChain logs:"
+	@tail -50 *.log 2>/dev/null || echo "No log files found"
 
-logs: ## 📋 Show canister logs
-	@echo "📋 Showing recent canister logs..."
-	@dfx canister logs ai_canister || echo "No logs available"
+cycles: ## Check and display cycles balance
+	@echo "Checking cycles balance..."
+	@dfx canister status ai_canister | grep -i cycles || echo "Cannot get cycles info"
 
-update: ## ⬆️ Update all dependencies
-	@echo "⬆️ Updating dependencies..."
-	@cargo update
-	@npm update
-	@echo "✅ Dependencies updated."
+upgrade: ## Upgrade canister code
+	@echo "Upgrading canisters..."
+	@dfx deploy --upgrade-unchanged
+	$(call print_success,"Canister upgrade completed")
 
-# =============================================================================
-# DOCKER SUPPORT (Optional)
-# =============================================================================
+## Documentation
+docs: ## Generate and serve documentation
+	@echo "Generating documentation..."
+	@echo "Documentation available in docs/ directory"
+	@ls -la docs/
 
-docker-build: ## 🐳 Build Docker image
-	@echo "🐳 Building Docker image..."
-	@docker build -t verichain:latest .
-	@echo "✅ Docker image built."
+## Advanced Commands
+benchmark: ## Run comprehensive benchmarks
+	@echo "Running benchmarks..."
+	@bash $(SCRIPTS_DIR)/benchmark.sh
+	$(call print_success,"Benchmarks completed")
 
-docker-dev: ## � Start with Docker
-	@echo "🐳 Starting Docker development environment..."
-	@docker-compose up --build -d
-	@echo "✅ Docker environment started at http://localhost:3000"
+profile: ## Profile application performance
+	@echo "Profiling application..."
+	@bash $(SCRIPTS_DIR)/profile.sh
+	$(call print_success,"Profiling completed")
 
-docker-stop: ## 🐳 Stop Docker containers
-	@echo "🐳 Stopping Docker containers..."
-	@docker-compose down
-	@echo "✅ Docker containers stopped."
-
-package: build ## 📦 Create distribution package
-	@echo "📦 Creating distribution package..."
-	@tar -czf verichain-dist.tar.gz src/frontend/dist .dfx/local/canisters
-	@echo "✅ Package created: verichain-dist.tar.gz"
+audit: ## Security and code audit
+	@echo "Running security audit..."
+	@npm audit
+	@cd $(FRONTEND_DIR) && npm audit
+	$(call print_success,"Audit completed")
