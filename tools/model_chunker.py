@@ -237,7 +237,7 @@ def main():
     chunk_parser = subparsers.add_parser('chunk', help='Chunk a model file')
     chunk_parser.add_argument('input', help='Input model file')
     chunk_parser.add_argument('output', help='Output directory for chunks')
-    chunk_parser.add_argument('--size', type=int, default=DEFAULT_CHUNK_SIZE_MB, 
+    chunk_parser.add_argument('--size', type=float, default=DEFAULT_CHUNK_SIZE_MB, 
                              help=f'Chunk size in MB (default: {DEFAULT_CHUNK_SIZE_MB})')
     
     # Verify command

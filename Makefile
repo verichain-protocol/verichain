@@ -43,11 +43,12 @@ full-setup: ## 🚀 Complete automated setup (new users - downloads model, build
 	@echo ""
 	@read -p "Continue with full setup? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
 	@$(MAKE) check-deps
-	@$(MAKE) install-deps  
+	@$(MAKE) install-deps
+	@$(MAKE) clean-model
 	@$(MAKE) download-model
-	@$(MAKE) build
 	@$(MAKE) start
 	@$(MAKE) deploy
+	@$(MAKE) build
 	@$(MAKE) upload-model
 	@echo ""
 	@echo "🎉 SETUP COMPLETE!"
