@@ -65,6 +65,24 @@ model-setup: ## Download and prepare AI model only
 	@bash $(SCRIPTS_DIR)/setup.sh chunk_model
 	$(call print_success,"Model setup completed")
 
+upload-model: ## Upload model chunks to AI canister
+	@echo "Uploading model chunks to AI canister..."
+	@bash $(SCRIPTS_DIR)/setup.sh upload_model_chunks
+	$(call print_success,"Model chunks uploaded")
+
+init-model: ## Initialize AI model from uploaded chunks
+	@echo "Initializing AI model..."
+	@bash $(SCRIPTS_DIR)/setup.sh initialize_model
+	$(call print_success,"Model initialization completed")
+
+model-full-setup: ## Complete model setup: download, chunk, upload, and initialize (if not using make setup)
+	@echo "Running complete model setup..."
+	@echo "Note: This is also included in 'make setup'. Use this only for isolated model setup."
+	@$(MAKE) model-setup
+	@$(MAKE) upload-model
+	@$(MAKE) init-model
+	$(call print_success,"Complete model setup finished")
+
 reset-setup: ## 🔄 Reset everything and start fresh setup
 	@echo "$(YELLOW)Resetting VeriChain to clean state...$(NC)"
 	@echo "This will remove all build artifacts and restart setup."
