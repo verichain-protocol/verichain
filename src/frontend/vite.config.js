@@ -10,6 +10,9 @@ export default defineConfig({
   build: {
     emptyOutDir: true,
   },
+  define: {
+    global: "globalThis",
+  },
   esbuild: {
     define: {
       global: "globalThis",
