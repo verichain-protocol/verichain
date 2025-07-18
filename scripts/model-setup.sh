@@ -3,14 +3,22 @@
 
 set -e
 
-# Configuration
-HUGGINGFACE_URL="https://huggingface.co/einrafh/verichain-deepfake-models/resolve/main/models/onnx/verichain-model.onnx"
+# Load configuration from .env file
+if [ -f ".env" ]; then
+    source .env
+fi
+
+# Configuration with defaults if not set in .env
+HUGGINGFACE_URL="${MODEL_DOWNLOAD_URL:-https://huggingface.co/einrafh/verichain-deepfake-models/resolve/main/models/onnx/verichain-model.onnx}"
 MODEL_FILE="verichain-model.onnx"
 ASSETS_DIR="src/ai_canister/assets"
-CHUNK_SIZE_MB=15
+CHUNK_SIZE_MB="${MODEL_CHUNK_SIZE_MB:-0.8}"
 
 echo "🤖 VeriChain Model Setup"
 echo "========================"
+echo "📊 Configuration:"
+echo "   Chunk size: ${CHUNK_SIZE_MB} MB"
+echo "   Model URL: ${HUGGINGFACE_URL}"
 
 # Check if model already exists
 if [ -f "$ASSETS_DIR/model_metadata.json" ]; then
@@ -85,7 +93,8 @@ fi
 
 # Chunk model
 echo "✂️  Chunking model for ICP deployment..."
-python3 tools/model_chunker.py chunk "$ASSETS_DIR/$MODEL_FILE" "$ASSETS_DIR/"
+echo "   Using chunk size: ${CHUNK_SIZE_MB} MB"
+python3 tools/model_chunker.py chunk "$ASSETS_DIR/$MODEL_FILE" "$ASSETS_DIR/" --size "$CHUNK_SIZE_MB"
 
 # Clean up original file
 rm "$ASSETS_DIR/$MODEL_FILE"

@@ -4,10 +4,16 @@
 
 set -e
 
+# Load configuration from .env file
+if [ -f ".env" ]; then
+    source .env
+fi
+
 # Configuration
 CHUNK_DIR="src/ai_canister/assets"
 METADATA_FILE="${CHUNK_DIR}/model_metadata.json"
 CANISTER_NAME="ai_canister"
+EXPECTED_CHUNK_SIZE_MB="${MODEL_CHUNK_SIZE_MB:-0.8}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -39,8 +45,19 @@ ORIGINAL_SIZE=$(jq -r '.original_size' "$METADATA_FILE")
 CHUNK_SIZE_MB=$(jq -r '.chunk_size_mb' "$METADATA_FILE")
 ORIGINAL_FILE=$(jq -r '.original_file' "$METADATA_FILE")
 
+# Validate chunk size matches expected configuration
+if [ "$CHUNK_SIZE_MB" != "$EXPECTED_CHUNK_SIZE_MB" ]; then
+    echo -e "${YELLOW}⚠️  Warning: Model chunk size ($CHUNK_SIZE_MB MB) doesn't match expected size ($EXPECTED_CHUNK_SIZE_MB MB)${NC}"
+    echo -e "${YELLOW}💡 This might indicate the model was generated with different settings${NC}"
+fi
+
 # Round chunk size to nearest integer MB for upload
 CHUNK_SIZE_MB_INT=$(echo "$CHUNK_SIZE_MB + 0.5" | bc | cut -d'.' -f1)
+
+# Handle empty CHUNK_SIZE_MB_INT (fallback to 1)
+if [ -z "$CHUNK_SIZE_MB_INT" ] || [ "$CHUNK_SIZE_MB_INT" = "" ]; then
+    CHUNK_SIZE_MB_INT=1
+fi
 
 echo "  Model file: $ORIGINAL_FILE"
 echo "  Original size: $(echo "scale=2; $ORIGINAL_SIZE / 1024 / 1024" | bc) MB"
