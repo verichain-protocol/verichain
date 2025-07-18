@@ -1,521 +1,208 @@
-# Logic Canister - TODO for Robin
+# VeriChain Logic Canister - Development Guide for Robin
 
 ## Overview
-Logic canister handles ALL business logic for VeriChain platform using **Motoko**.
+- **Language**: Motoko (Internet Computer)
+- **Purpose**: User management with 3-tier system,### Priority 1: Internet Identit3. **Priority 3**: Premium API gateway (Nice to have)
 
-## Key Rules
-- **API Access**: Premium users ONLY
-- **Website Access**: All tiers (Guest, Registered, Premium)
-- **Language**: Motoko (not Rust)
-
-## Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │────│ Logic Canister  │────│  AI Canister    │
-│  (TypeScript)   │    │   (Motoko)      │    │   (Rust)        │
-│                 │    │                 │    │                 │
-│ • User UI       │    │ • Auth & Users  │    │ • AI Processing │
-│ • verichain.app │    │ • Quota Management│  │ • Model Inference│
-│ • All tiers     │    │ • API Gateway   │    │ • Pure AI only  │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-## Core Responsibilities
-
-### 1. User Management 🧑‍💼
-- [ ] User registration (email/username/password)
-- [ ] User authentication (login/logout)
-- [ ] Password hashing & validation
-- [ ] User profile management
-- [ ] Account activation/deactivation
-
-### 2. Tier System 🎯
-- [ ] Implement 3-tier system:
-  - **Guest**: 3 lifetime analyses, website only
-  - **Registered**: 30 monthly analyses, website only
-  - **Premium**: 1000 monthly analyses, API + website
-- [ ] Tier upgrade/downgrade logic
-- [ ] Subscription management
-
-### 3. Quota Management 📊
-- [ ] Track usage per user
-- [ ] Monthly quota reset (1st of each month)
-- [ ] Guest lifetime limit enforcement
-- [ ] Usage analytics and reporting
-- [ ] Quota validation before AI calls
-
-### 4. API Gateway 🚪
-- [ ] **CRITICAL**: API access for Premium users ONLY
-- [ ] API key generation for Premium users
-- [ ] Rate limiting (10 req/min for all tiers)
-- [ ] Request validation and forwarding to AI canister
-- [ ] API usage tracking
-
-### 5. Authentication & Authorization 🔐
-- [ ] JWT token generation and validation
-- [ ] Session management
-- [ ] Role-based access control
-- [ ] API key management for Premium users
-- [ ] Security middleware
-
-### 6. Billing & Subscriptions 💳
-- [ ] Premium subscription management
-- [ ] Payment processing integration
-- [ ] Subscription renewal logic
-- [ ] Billing history
-- [ ] Invoice generation
-
-### 7. Analytics & Monitoring 📈
-- [ ] Usage statistics per user
-- [ ] Platform-wide analytics
-- [ ] Performance monitoring
-- [ ] Error logging and tracking
-- [ ] Admin dashboard data
-
-## Implementation Priority
-
-### Phase 1: Core Foundation
-1. **User Management** - Registration, login, basic auth
-2. **Tier System** - 3-tier implementation with quotas
-3. **Basic Quota Management** - Usage tracking and limits
-
-### Phase 2: API Gateway
-1. **Premium API Access** - API gateway for Premium users only
-2. **API Key Management** - Generate and validate API keys
-3. **Rate Limiting** - 10 req/min enforcement
-
-### Phase 3: Additional Features
-1. **Subscription Management** - Premium tier subscriptions
-2. **Analytics** - Usage tracking and reporting
-3. **Admin Features** - Platform management tools
-
-## File Structure (Motoko)
-
-```
-src/logic_canister/
-├── main.mo              # Main canister entry point
-├── types/
-│   ├── User.mo          # User types and structures
-│   ├── Quota.mo         # Quota and usage types
-│   ├── Auth.mo          # Authentication types
-│   └── API.mo           # API response types
-├── services/
-│   ├── UserService.mo   # User CRUD operations
-│   ├── AuthService.mo   # Authentication logic
-│   ├── QuotaService.mo  # Quota management
-│   ├── APIService.mo    # API gateway logic
-│   └── BillingService.mo # Subscription management
-├── utils/
-│   ├── Hash.mo          # Password hashing utilities
-│   ├── JWT.mo           # JWT token utilities
-│   └── Time.mo          # Time utilities
-└── storage/
-    ├── UserStorage.mo   # User data storage
-    ├── QuotaStorage.mo  # Usage tracking storage
-    └── SessionStorage.mo # Session management
-```
-
-## Key Functions to Implement
-
-### User Management
-```motoko
-// User registration
-public func registerUser(email: Text, username: Text, password: Text) : async Result<User, Text>
-
-// User login
-public func loginUser(email: Text, password: Text) : async Result<AuthToken, Text>
-
-// Get user profile
-public func getUserProfile(userId: Text) : async Result<User, Text>
-```
-
-### Quota Management
-```motoko
-// Check if user can perform analysis
-public func canPerformAnalysis(userId: ?Text, ipAddress: ?Text) : async Result<Bool, Text>
-
-// Record analysis usage
-public func recordAnalysisUsage(userId: ?Text, ipAddress: ?Text) : async Result<(), Text>
-
-// Get quota status
-public func getQuotaStatus(userId: ?Text) : async Result<QuotaStatus, Text>
-```
-
-### API Gateway (Premium Only)
-```motoko
-// Generate API key for Premium user
-public func generateAPIKey(userId: Text) : async Result<Text, Text>
-
-// Validate API request (Premium only)
-public func validateAPIRequest(apiKey: Text) : async Result<User, Text>
-
-// Forward to AI canister (Premium only)
-public func forwardToAI(apiKey: Text, request: AIRequest) : async Result<AIResponse, Text>
-```
-
-## Integration Points
-
-### With Frontend
-- User authentication and session management
-- Quota status checks before analysis
-- User profile and settings management
-- Premium upgrade flows
-
-### With AI Canister
-- Forward authenticated requests from Premium API users
-- Pass user context for tracking and analytics
-- Validate requests before AI processing
-
-## Security Considerations
-
-1. **API Access Control**: Strict Premium-only API access
-2. **Password Security**: Proper hashing and salting
-3. **Rate Limiting**: Prevent abuse across all tiers
-4. **Input Validation**: Sanitize all user inputs
-5. **Session Management**: Secure token handling
-
-## Data Privacy & GDPR
-
-1. **User Data Export**: Allow users to export their data
-2. **Data Deletion**: Allow account deletion
-3. **Usage Tracking**: Anonymous analytics where possible
-4. **Consent Management**: Clear privacy policies
-
-## Success Metrics
-
-- [ ] User registration and authentication working
-- [ ] 3-tier quota system enforced correctly
-- [ ] API access restricted to Premium users only
-- [ ] Rate limiting functioning (10 req/min)
-- [ ] Monthly quota reset automation
-- [ ] Integration with AI canister successful
-
-## Testing Strategy
-
-1. **Unit Tests**: Each service function
-2. **Integration Tests**: Frontend ↔ Logic ↔ AI flow
-3. **API Tests**: Premium API access validation
-4. **Load Tests**: Rate limiting and quota enforcement
-5. **Security Tests**: Authentication and authorization
+### File Limits (ICP Optimized):
+- Images: 5MB maximum
+- Videos: 25MB maximum
 
 ---
 
-**Next Steps for Robin:**
-1. Review this TODO list
-2. Set up Motoko development environment
-3. Start with Phase 1: User Management
-4. Implement basic authentication first
-5. Add 3-tier quota system
-6. Build API gateway for Premium users
+**Robin: Templates are ready. Start with the core functions in main.mo. Let me know if you need help!** System
+1. `getOrCreateUser()` - Internet Identity login (start here)
+2. `canPerformAnalysis()` - Quota checking (core feature)
+3. `recordAnalysisUsage()` - Usage tracking (core feature)
+4. `getQuotaStatus()` - Show remaining quota
 
-**Questions for Discussion:**
-- Payment integration preferences?
-- Admin panel requirements?
-- Specific analytics needs?
-- Database/storage strategy?
+### Priority 2: User Management  
+5. `upgradeUserTier()` - Premium upgrades
 
-## Architecture Responsibilities
+### Priority 3: Premium API Gateway (Implement Last)
+6. `generateAPIKey()` - API key for Premium users
+7. `validateAPIRequest()` - API validation
 
-### What Logic Canister Should Handle:
-- ✅ User registration & authentication
-- ✅ Session management & JWT tokens
-- ✅ 3-tier user system (Guest, Registered, Premium)
-- ✅ Quota management & credit tracking
-- ✅ Subscription & billing logic
-- ✅ Rate limiting & abuse prevention
-- ✅ Usage analytics & reporting
-- ✅ Audit logs & compliance
+### Robin's Implementation Order:
+1. **Priority 1**: Internet Identity + Quota system (Core MVP)
+2. **Priority 2**: User tier management  
+3. **Priority 3**: Premium API gateway (Nice to have)and Premium API gateway
+- **Authentication**: Internet Identity only (keeping MVP simple)
+- **User Tiers**: Guest (3 lifetime), Registered (30/month), Premium (1000/month + API access)
 
-### What AI Canister Handles:
-- ❌ Pure AI model operations
-- ❌ Image/video processing
-- ❌ ML inference only
+## Authentication Flow
 
-## User Tier System Implementation
-
-### 1. User Types & Quotas
-```rust
-#[derive(CandidType, Serialize, Deserialize, Clone)]
-pub enum UserTier {
-    Guest,      // 3 lifetime analyses
-    Registered, // 30 monthly analyses  
-    Premium,    // 1000 monthly analyses
-}
-
-#[derive(CandidType, Serialize, Deserialize, Clone)]
-pub struct UserQuota {
-    pub tier: UserTier,
-    pub used_this_month: u32,
-    pub total_lifetime_usage: u32,
-    pub last_reset: u64, // timestamp
-    pub created_at: u64,
-}
+### Internet Identity Integration
+```
+User ──→ Internet Identity ──→ Principal ID ──→ Logic Canister
+  ↓            ↓                    ↓              ↓
+1. Login    1. Generate         1. Get Principal  1. Create/Get User
+2. Approve  2. Return Principal 2. Send to Logic  2. Check Tier & Quota
 ```
 
-### 2. Authentication System
-```rust
-#[derive(CandidType, Serialize, Deserialize, Clone)]
-pub struct User {
-    pub id: String,
-    pub email: String,
-    pub username: String,
-    pub tier: UserTier,
-    pub quota: UserQuota,
-    pub subscription_expires: Option<u64>,
-    pub created_at: u64,
-    pub last_login: u64,
-}
-```
+### Why Internet Identity for MVP:
+- **Simplicity** - No password hashing or session management required
+- **Security** - Internet Identity handles all authentication concerns
+- **Development Speed** - Robin can focus on business logic instead of auth
+- **IC Native** - Built specifically for Internet Computer platform
+- **Reliability** - Fewer potential security vulnerabilities
 
-## Core Functions to Implement
-
-### 1. User Management
-- [ ] `register_user(email: String, username: String, password: String) -> Result<User, String>`
-- [ ] `login_user(email: String, password: String) -> Result<AuthToken, String>`
-- [ ] `logout_user(token: String) -> Result<bool, String>`
-- [ ] `get_user_profile(token: String) -> Result<User, String>`
-- [ ] `update_user_profile(token: String, updates: UserUpdate) -> Result<User, String>`
-
-### 2. Authentication & Sessions
-- [ ] `generate_auth_token(user_id: String) -> String`
-- [ ] `validate_auth_token(token: String) -> Result<String, String>` // returns user_id
-- [ ] `refresh_auth_token(token: String) -> Result<String, String>`
-- [ ] `revoke_auth_token(token: String) -> Result<bool, String>`
-
-### 3. Quota Management
-- [ ] `check_analysis_quota(user_id: Option<String>) -> Result<QuotaStatus, String>`
-- [ ] `consume_analysis_quota(user_id: Option<String>) -> Result<bool, String>`
-- [ ] `get_quota_status(user_id: Option<String>) -> Result<QuotaStatus, String>`
-- [ ] `reset_monthly_quotas() -> Result<u32, String>` // admin function
-- [ ] `upgrade_user_tier(user_id: String, new_tier: UserTier) -> Result<User, String>`
-
-### 4. Guest User Handling
-- [ ] `track_guest_usage(ip_address: String) -> Result<bool, String>`
-- [ ] `check_guest_quota(ip_address: String) -> Result<QuotaStatus, String>`
-- [ ] `get_guest_usage_count(ip_address: String) -> u32`
-
-### 5. Subscription Management
-- [ ] `create_subscription(user_id: String, tier: UserTier, duration_months: u32) -> Result<Subscription, String>`
-- [ ] `cancel_subscription(user_id: String) -> Result<bool, String>`
-- [ ] `renew_subscription(user_id: String) -> Result<Subscription, String>`
-- [ ] `check_subscription_status(user_id: String) -> Result<SubscriptionStatus, String>`
-
-### 6. Analytics & Reporting
-- [ ] `record_analysis_request(user_id: Option<String>, media_type: String, file_size: u64) -> Result<bool, String>`
-- [ ] `get_usage_analytics(user_id: String, period: TimePeriod) -> Result<UsageStats, String>`
-- [ ] `get_platform_statistics() -> Result<PlatformStats, String>` // admin only
-- [ ] `export_user_data(user_id: String) -> Result<UserDataExport, String>` // GDPR compliance
-
-### 7. Rate Limiting
-- [ ] `check_rate_limit(user_id: Option<String>) -> Result<bool, String>`
-- [ ] `record_api_request(user_id: Option<String>, endpoint: String) -> Result<bool, String>`
-- [ ] `get_rate_limit_status(user_id: Option<String>) -> Result<RateLimitStatus, String>`
-
-### 8. Admin Functions
-- [ ] `get_all_users(admin_token: String, page: u32) -> Result<Vec<User>, String>`
-- [ ] `ban_user(admin_token: String, user_id: String) -> Result<bool, String>`
-- [ ] `unban_user(admin_token: String, user_id: String) -> Result<bool, String>`
-- [ ] `force_quota_reset(admin_token: String, user_id: String) -> Result<bool, String>`
-- [ ] `get_system_health() -> Result<SystemHealth, String>`
-
-## Integration with AI Canister
-
-### Communication Flow:
-1. **Frontend** → **Logic Canister**: Authenticate user, check quota
-2. **Logic Canister** → **Frontend**: Return auth status + remaining quota
-3. **Frontend** → **AI Canister**: Send analysis request with auth token
-4. **AI Canister** → **Logic Canister**: Validate token, consume quota
-5. **AI Canister** → **Frontend**: Return analysis result + updated quota
-
-### Required Integration Functions:
-- [ ] `validate_analysis_request(auth_token: Option<String>) -> Result<AnalysisPermission, String>`
-- [ ] `post_analysis_callback(user_id: Option<String>, success: bool) -> Result<QuotaUpdate, String>`
-
-## Data Structures
-
-### QuotaStatus
-```rust
-#[derive(CandidType, Serialize, Deserialize, Clone)]
-pub struct QuotaStatus {
-    pub tier: UserTier,
-    pub remaining: u32,
-    pub total: u32,
-    pub resets_at: Option<u64>, // null for guests
-    pub can_analyze: bool,
-}
-```
-
-### AuthToken
-```rust
-#[derive(CandidType, Serialize, Deserialize, Clone)]
-pub struct AuthToken {
-    pub token: String,
-    pub expires_at: u64,
-    pub user_id: String,
-}
-```
-
-### UsageStats
-```rust
-#[derive(CandidType, Serialize, Deserialize, Clone)]
-pub struct UsageStats {
-    pub total_analyses: u32,
-    pub images_analyzed: u32,
-    pub videos_analyzed: u32,
-    pub period_start: u64,
-    pub period_end: u64,
-    pub quota_usage_percentage: f32,
-}
-```
-
-## Implementation Priority
-
-### Phase 1 (Essential - Week 1):
-1. ✅ Basic user registration/login
-2. ✅ Authentication token system
-3. ✅ 3-tier quota management
-4. ✅ Guest user tracking
-
-### Phase 2 (Core Features - Week 2):
-1. ✅ Rate limiting implementation
-2. ✅ Monthly quota reset system
-3. ✅ Integration with AI canister
-4. ✅ Basic analytics
-
-### Phase 3 (Advanced - Week 3):
-1. ✅ Subscription management
-2. ✅ Advanced analytics & reporting
-3. ✅ Admin panel functions
-4. ✅ GDPR compliance features
-
-## Testing Strategy
-
-### Unit Tests:
-- [ ] User registration/authentication flows
-- [ ] Quota calculation and consumption
-- [ ] Rate limiting logic
-- [ ] Token validation and expiry
-
-### Integration Tests:
-- [ ] Communication with AI canister
-- [ ] End-to-end user journey
-- [ ] Quota enforcement across services
-- [ ] Error handling and recovery
-
-## Security Considerations
-
-### Authentication:
-- [ ] Implement secure password hashing (bcrypt/argon2)
-- [ ] JWT token signing with proper secrets
-- [ ] Session timeout and refresh mechanisms
-- [ ] Brute force protection
-
-### Authorization:
-- [ ] Proper permission checks for all endpoints
-- [ ] Admin role validation
-- [ ] User data isolation
-- [ ] API rate limiting per user/IP
-
-### Data Protection:
-- [ ] Encrypt sensitive user data
-- [ ] Implement audit logging
-- [ ] GDPR compliance (data export/deletion)
-- [ ] Secure communication between canisters
-
-## Environment Setup
-
-### Prerequisites:
-```bash
-# Install Rust and DFX (already done)
-# Set up candid interface definitions
-# Configure environment variables
-```
-
-### Development Commands:
-```bash
-# Build logic canister
-dfx build logic_canister
-
-# Deploy locally
-dfx deploy logic_canister
-
-# Run tests
-cargo test
-
-# Generate candid interface
-dfx generate logic_canister
-```
-
-## File Structure Recommendation
+## Project Structure
 
 ```
 src/logic_canister/
-├── Cargo.toml
 ├── src/
-│   ├── lib.rs              # Main canister entry point
-│   ├── auth/
-│   │   ├── mod.rs
-│   │   ├── user.rs         # User management
-│   │   ├── session.rs      # Session handling
-│   │   └── token.rs        # JWT token management
-│   ├── quota/
-│   │   ├── mod.rs
-│   │   ├── manager.rs      # Quota management
-│   │   ├── tier.rs         # User tier logic
-│   │   └── guest.rs        # Guest user handling
-│   ├── subscription/
-│   │   ├── mod.rs
-│   │   └── manager.rs      # Subscription logic
-│   ├── analytics/
-│   │   ├── mod.rs
-│   │   ├── usage.rs        # Usage tracking
-│   │   └── reporting.rs    # Analytics reports
-│   ├── admin/
-│   │   ├── mod.rs
-│   │   └── functions.rs    # Admin operations
-│   ├── types/
-│   │   ├── mod.rs
-│   │   ├── user.rs         # User types
-│   │   ├── quota.rs        # Quota types
-│   │   └── common.rs       # Common types
-│   └── utils/
-│       ├── mod.rs
-│       ├── crypto.rs       # Cryptographic utilities
-│       ├── validation.rs   # Input validation
-│       └── time.rs         # Time utilities
-├── tests/
-│   ├── integration/
-│   └── unit/
-└── candid/
-    └── logic_canister.did  # Interface definition
+│   ├── main.mo               # Main canister - Robin implements all functions here
+│   ├── types/                # Data type definitions (already created)
+│   │   ├── User.mo          # User types, tiers, registration
+│   │   ├── Auth.mo          # Authentication, tokens, API keys
+│   │   ├── Quota.mo         # Quota tracking, usage stats
+│   │   └── API.mo           # API responses, errors, system status
+│   ├── services/             # Business logic modules (templates created)
+│   │   ├── UserService.mo   # User CRUD operations
+│   │   ├── QuotaService.mo  # Quota management & tracking
+│   │   └── APIService.mo    # API gateway (Premium only)
+│   ├── utils/               # Helper utilities (templates created)
+│   │   ├── Hash.mo          # Password hashing & security
+│   │   └── Time.mo          # Time utilities & calculations
+│   └── storage/             # Data persistence (templates created)
+│       └── UserStorage.mo   # User data storage operations
+└── TODO.md                # This file
 ```
 
-## Questions for Robin:
+## Core Functions for Robin
 
-1. **Database Choice**: Should we use IC stable memory or external database for user data?
-2. **Payment Integration**: Which payment provider for Premium subscriptions? (Stripe, crypto, etc.)
-3. **Email Service**: Do we need email verification? Which service?
-4. **Admin Panel**: Should logic canister expose admin APIs for a separate admin dashboard?
-5. **Backup Strategy**: How should we handle data backup and recovery?
+### 1. User Management (Internet Identity)
+```motoko
+// Internet Identity login - primary authentication method
+public func getOrCreateUser(caller: Principal) : async User
 
-## Resources for Implementation:
+// Upgrade user to Premium tier
+public func upgradeUserTier(caller: Principal, newTier: UserTier) : async Result<User, Text>
+```
 
-### Documentation:
-- [Internet Computer Documentation](https://internetcomputer.org/docs/)
-- [Rust CDK Documentation](https://docs.rs/ic-cdk/)
-- [Candid Guide](https://internetcomputer.org/docs/current/developer-docs/backend/candid/)
+### 2. Quota System (Priority 1 - Core Functionality)
+```motoko
+// Check if user can perform analysis (Guest: 3 lifetime, Registered: 30/month, Premium: 1000/month)
+public func canPerformAnalysis(caller: ?Principal, ipAddress: ?Text) : async Bool
 
-### Example Projects:
-- [IC User Authentication Example](https://github.com/dfinity/examples/tree/master/rust/user-auth)
-- [IC Subscription Service Example](https://github.com/dfinity/examples/tree/master/rust/subscription)
+// Record usage after analysis completed
+public func recordAnalysisUsage(caller: ?Principal, ipAddress: ?Text) : async Result<(), Text>
 
-### Security Best Practices:
-- [IC Security Best Practices](https://internetcomputer.org/docs/current/developer-docs/security/)
-- [Rust Security Guidelines](https://anssi-fr.github.io/rust-guide/)
+// Get remaining quota for user
+public func getQuotaStatus(caller: ?Principal) : async { remaining: Nat; total: Nat }
+```
 
----
+### 3. Premium API Gateway (Priority 3 - Implement Last)
+```motoko
+// Generate API key for Premium users
+public func generateAPIKey(caller: Principal) : async Result<Text, Text>
 
-**Robin, start with Phase 1 functions first! Focus on user management and basic quota system. We can iterate and improve from there.**
+// Validate API requests (Premium only)
+public func validateAPIRequest(apiKey: Text) : async Result<Principal, Text>
+```
 
-**Need help? Ask me or coordinate with the frontend team for integration requirements.**
+## Data Types
+
+```motoko
+// Main user types
+public type UserTier = { #Guest; #Registered; #Premium };
+
+public type User = {
+    id: Principal;           // Internet Identity Principal
+    tier: UserTier;
+    used_this_month: Nat;    // Monthly usage counter
+    total_used: Nat;         // Lifetime usage (for Guests)
+    created_at: Int;         // Registration timestamp
+    api_key: ?Text;          // Only Premium users get API keys
+};
+
+// Guest tracking (anonymous users by IP)
+public type GuestUsage = {
+    ip_address: Text;
+    usage_count: Nat;        // Max 3 analyses
+    first_used: Int;         // Timestamp
+};
+```
+
+## Integration Flow
+
+### Main Flow: Internet Identity Only
+```
+Frontend ──→ Internet Identity ──→ Logic Canister ──→ AI Canister
+    ↓              ↓                   ↓                 ↓
+1. II Login    1. Return Principal  1. getOrCreateUser    1. Process image
+2. Get quota   2. Pass Principal    2. Check quota       2. Return analysis  
+3. Send image  3. Validate user     3. Record usage      3. Update metrics
+4. Show result 4. Forward request   4. Forward to AI     4. Return to user
+```
+
+### API Flow (Implement Last - Priority 3)
+```
+External API ──→ Logic Canister ──→ AI Canister
+     ↓               ↓                 ↓
+1. API Key      1. validateAPIRequest  1. Process image
+2. Send image   2. Check Premium tier  2. Return analysis
+3. Get result   3. Record usage       3. Update metrics
+                4. Forward to AI       4. Return to API
+```
+
+## Implementation Steps for Robin
+
+### Phase 1: Basic Setup + IC Authentication (Start Here)
+1. Copy data types from `types/` folder to `main.mo`
+2. Set up stable variables for user storage and guest tracking
+3. Implement `getOrCreateUser()` - Internet Identity login
+4. Implement health check function
+
+### Phase 2: Quota System (Priority 1 - Most Important)
+5. Implement `canPerformAnalysis()` - Check quota limits (core feature)
+6. Implement `recordAnalysisUsage()` - Track usage (core feature)
+7. Implement `getQuotaStatus()` - Return remaining quota
+8. Test with frontend - Login IC + quota check
+
+### Phase 3: Premium API Gateway (Priority 3 - Do Last)
+9. Implement `generateAPIKey()` - Create API keys for Premium users
+10. Implement `validateAPIRequest()` - Validate API access
+11. Test API endpoints - Premium tier validation
+
+## Success Criteria
+
+- Guest Users: Maximum 3 lifetime analyses (tracked by IP)
+- Registered Users: 30 analyses per month (resets monthly)
+- Premium Users: 1000 analyses per month + API access
+- API Access: Premium tier only, validated by API key
+- Authentication: Internet Identity Principal-based
+- Monthly Reset: Quotas automatically reset each month
+
+## Development Workflow
+
+1. Start with `main.mo` - All functions go here initially
+2. Test with dfx - `dfx build` and `dfx deploy --local`
+3. Integrate with frontend - Test login and quota flows
+4. Add API testing - Test Premium API key generation
+5. Deploy to mainnet - Production deployment
+
+## Quick Reference for Robin
+
+### Priority 1: Internet Identity + Quota System
+1. `getOrCreateUser()` - Internet Identity login (SIMPLE & FIRST)
+2. `canPerformAnalysis()` - Quota checking (CORE FEATURE)
+3. `recordAnalysisUsage()` - Usage tracking (CORE FEATURE)
+4. `getQuotaStatus()` - Show remaining quota
+
+### 🔧 PRIORITY #2: User Management  
+5. `upgradeUserTier()` - Premium upgrades (SECOND)
+
+### � PRIORITY #3: Premium API Gateway (LAST!)
+6. `generateAPIKey()` - API key for Premium (DO LAST)
+7. `validateAPIRequest()` - API validation (DO LAST)
+
+### 🎯 Robin's New Priority Order:
+1. **PRIORITY #1**: Internet Identity + Quota system (CORE MVP)
+2. **PRIORITY #2**: User tier management  
+3. **PRIORITY #3**: Premium API gateway (NICE TO HAVE)
+
+### File Limits (ICP Optimized):
+- Images: 5MB maximum
+- Videos: 25MB maximum
