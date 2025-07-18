@@ -1,112 +1,153 @@
+// VeriChain Logic Canister - Business Logic Hub
+// Language: Motoko  
+// Purpose: User management, auth, quota system, API gateway (Premium only)
+
 import HashMap "mo:base/HashMap";
 import Text "mo:base/Text";
-import Time "mo:base/Time";
 import Principal "mo:base/Principal";
 import Result "mo:base/Result";
-import Int "mo:base/Int";
+import Debug "mo:base/Debug";
 import Iter "mo:base/Iter";
+
+// Import custom modules - Fixed syntax
+import UserTypes "types/User";
+import AuthTypes "types/Auth";  
+import QuotaTypes "types/Quota";
+import APITypes "types/API";
 
 actor VeriChainLogic {
     
-    type User = {
-        id: Principal;
-        subscription_type: Text;
-        usage_count: Nat;
-        last_reset: Int;
-        created_at: Int;
-    };
-
-    type ApiKey = {
-        key: Text;
-        user_id: Principal;
-        permissions: [Text];
-        created_at: Int;
-        is_active: Bool;
-    };
-
-    private stable var users_entries : [(Principal, User)] = [];
-    private stable var api_keys_entries : [(Text, ApiKey)] = [];
+    // ===============================================
+    // STORAGE - Stable variables for upgrades
+    // ===============================================
     
-    private var users = HashMap.fromIter<Principal, User>(
+    private stable var users_entries : [(Principal, UserTypes.User)] = [];
+    private stable var quotas_entries : [(Principal, UserTypes.UserQuota)] = [];
+    private stable var api_keys_entries : [(Text, AuthTypes.APIKey)] = [];
+    private stable var guest_usage_entries : [(Text, QuotaTypes.GuestUsage)] = [];
+    
+    // In-memory storage (rebuilt from stable vars on upgrade)
+    private var users = HashMap.fromIter<Principal, UserTypes.User>(
         users_entries.vals(), 10, Principal.equal, Principal.hash
     );
     
-    private var api_keys = HashMap.fromIter<Text, ApiKey>(
+    private var quotas = HashMap.fromIter<Principal, UserTypes.UserQuota>(
+        quotas_entries.vals(), 10, Principal.equal, Principal.hash
+    );
+    
+    private var api_keys = HashMap.fromIter<Text, AuthTypes.APIKey>(
         api_keys_entries.vals(), 10, Text.equal, Text.hash
     );
-
-    public func create_user(user_id: Principal) : async Result.Result<User, Text> {
-        let new_user : User = {
-            id = user_id;
-            subscription_type = "free";
-            usage_count = 0;
-            last_reset = Time.now();
-            created_at = Time.now();
-        };
-        
-        users.put(user_id, new_user);
-        #ok(new_user)
+    
+    private var guest_usage = HashMap.fromIter<Text, QuotaTypes.GuestUsage>(
+        guest_usage_entries.vals(), 10, Text.equal, Text.hash
+    );
+    
+    // ===============================================
+    // SYSTEM FUNCTIONS
+    // ===============================================
+    
+    // Health check for monitoring
+    public func health_check() : async Bool {
+        Debug.print("VeriChain Logic Canister is healthy");
+        true
     };
-
-    public query func get_user(user_id: Principal) : async ?User {
-        users.get(user_id)
-    };
-
-    public func create_api_key(user_id: Principal) : async Result.Result<Text, Text> {
-        let key = generate_api_key();
-        let new_api_key : ApiKey = {
-            key = key;
-            user_id = user_id;
-            permissions = ["deepfake_detection"];
-            created_at = Time.now();
-            is_active = true;
-        };
-        
-        api_keys.put(key, new_api_key);
-        #ok(key)
-    };
-
-    public query func validate_api_key(key: Text) : async Bool {
-        switch (api_keys.get(key)) {
-            case (?api_key) api_key.is_active;
-            case null false;
+    
+    // Get canister info
+    public func get_canister_info() : async { 
+        name: Text; 
+        version: Text; 
+        language: Text;
+        owner: Text;
+        purpose: Text;
+        user_count: Nat;
+        api_keys_count: Nat;
+    } {
+        {
+            name = "VeriChain Logic Canister";
+            version = "1.0.0";
+            language = "Motoko";
+            owner = "Robin";
+            purpose = "Business logic, user management, API gateway for Premium users";
+            user_count = users.size();
+            api_keys_count = api_keys.size();
         }
     };
-
-    public func check_usage_limit(user_id: Principal) : async Bool {
-        switch (users.get(user_id)) {
-            case (?user) {
-                let current_time = Time.now();
-                let one_month = 30 * 24 * 60 * 60 * 1000_000_000;
-                
-                if (current_time - user.last_reset > one_month) {
-                    let updated_user = {
-                        user with 
-                        usage_count = 0;
-                        last_reset = current_time;
-                    };
-                    users.put(user_id, updated_user);
-                    true
-                } else {
-                    let limit = if (user.subscription_type == "premium") 1000 else 30;
-                    user.usage_count < limit
-                }
-            };
-            case null true;
+    
+    // ===============================================
+    // TODO for Robin: Core Implementation Areas
+    // ===============================================
+    
+    // 1. USER MANAGEMENT
+    public func registerUser(_registration: UserTypes.UserRegistration) : async Result.Result<UserTypes.User, Text> {
+        #err("Not implemented yet - Robin's task")
+    };
+    
+    public func loginUser(_login: UserTypes.UserLogin) : async Result.Result<AuthTypes.LoginResult, Text> {
+        #err("Not implemented yet - Robin's task")
+    };
+    
+    public func getUserProfile(_user_id: Principal) : async ?UserTypes.User {
+        users.get(_user_id)
+    };
+    
+    // 2. TIER SYSTEM & QUOTA MANAGEMENT
+    public func canPerformAnalysis(_user_id: ?Principal, _ip_address: ?Text) : async Result.Result<QuotaTypes.AnalysisPermission, Text> {
+        #err("Not implemented yet - Robin's task")
+    };
+    
+    public func recordAnalysisUsage(_user_id: ?Principal, _ip_address: ?Text) : async Result.Result<(), Text> {
+        #err("Not implemented yet - Robin's task")
+    };
+    
+    public func getQuotaStatus(_user_id: ?Principal) : async Result.Result<QuotaTypes.QuotaStatus, Text> {
+        #err("Not implemented yet - Robin's task")
+    };
+    
+    // 3. API GATEWAY (PREMIUM ONLY!)
+    public func generateAPIKey(_user_id: Principal) : async Result.Result<Text, Text> {
+        #err("Not implemented yet - Robin's task")
+    };
+    
+    public func validateAPIRequest(_api_key: Text) : async Result.Result<UserTypes.User, APITypes.ErrorCode> {
+        #err(#InvalidAPIKey)
+    };
+    
+    public func revokeAPIKey(_api_key: Text, _user_id: Principal) : async Result.Result<(), Text> {
+        #err("Not implemented yet - Robin's task")
+    };
+    
+    // 4. ADMIN FUNCTIONS
+    public func getPlatformStats() : async APITypes.PlatformStats {
+        {
+            total_users = users.size();
+            guest_users = 0; // TODO: Calculate from user tiers
+            registered_users = 0; // TODO: Calculate from user tiers  
+            premium_users = 0; // TODO: Calculate from user tiers
+            total_analyses = 0; // TODO: Sum from all quotas
+            analyses_today = 0; // TODO: Calculate today's usage
+            analyses_this_month = 0; // TODO: Calculate monthly usage
+            revenue_this_month = 0.0; // TODO: Calculate from Premium subscriptions
         }
     };
-
-    private func generate_api_key() : Text {
-        "vk_" # Int.toText(Time.now())
-    };
-
+    
+    // ===============================================
+    // UPGRADE HOOKS - Data persistence
+    // ===============================================
+    
     system func preupgrade() {
-        users_entries := Iter.toArray(users.entries());
-        api_keys_entries := Iter.toArray(api_keys.entries());
+        users_entries := users.entries() |> Iter.toArray(_);
+        quotas_entries := quotas.entries() |> Iter.toArray(_);
+        api_keys_entries := api_keys.entries() |> Iter.toArray(_);
+        guest_usage_entries := guest_usage.entries() |> Iter.toArray(_);
     };
-
+    
     system func postupgrade() {
         users_entries := [];
+        quotas_entries := [];
         api_keys_entries := [];
+        guest_usage_entries := [];
     };
+    
+    Debug.print("VeriChain Logic Canister initialized - Ready for Robin's implementation");
 }
