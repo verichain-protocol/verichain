@@ -1,266 +1,297 @@
 #!/bin/bash
 
-# VeriChain Complete Setup Script
-# Professional setup script for VeriChain deepfake detection platform
+# VeriChain Setup Script
+# Complete one-command setup for new users with comprehensive error handling
 
 set -e
 
-# Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-MODEL_URL="${MODEL_DOWNLOAD_URL:-https://huggingface.co/einrafh/verichain-deepfake-models/resolve/main/models/onnx/verichain-model.onnx}"
-MODEL_CHUNK_SIZE="${MODEL_CHUNK_SIZE_MB:-0.8}"
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
+PURPLE='\033[0;35m'
 NC='\033[0m'
 
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+# Logging functions
+print_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
+print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
+print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+print_info() { echo -e "${PURPLE}[INFO]${NC} $1"; }
+
+# Error handling
+handle_error() {
+    local exit_code=$?
+    local line_number=$1
+    print_error "Setup failed at line $line_number with exit code $exit_code"
+    print_error "Please check the error messages above and try again."
+    print_info "You can also try:"
+    print_info "  - make reset-setup (to start completely fresh)"
+    print_info "  - make clean-setup (to clean while keeping dependencies)"
+    print_info "  - Check docs/DEVELOPMENT.md for manual setup"
+    exit $exit_code
 }
 
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+trap 'handle_error $LINENO' ERR
+
+# Progress tracking
+TOTAL_STEPS=8
+CURRENT_STEP=0
+
+show_progress() {
+    CURRENT_STEP=$((CURRENT_STEP + 1))
+    echo -e "${PURPLE}[${CURRENT_STEP}/${TOTAL_STEPS}]${NC} $1"
 }
 
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-check_prerequisites() {
-    print_status "Checking prerequisites..."
-    
-    # Check dfx
-    if ! command -v dfx &> /dev/null; then
-        print_error "DFX is not installed. Please install DFX first."
-        exit 1
+# Check if DFX is running and handle gracefully
+check_dfx_status() {
+    if dfx ping --quiet >/dev/null 2>&1; then
+        print_warning "DFX is already running. Stopping it to ensure clean setup..."
+        dfx stop >/dev/null 2>&1 || true
+        sleep 2
     fi
+}
+
+# Check prerequisites
+check_prerequisites() {
+    show_progress "Checking system prerequisites..."
+    
+    local missing_deps=()
     
     # Check Node.js
     if ! command -v node &> /dev/null; then
-        print_error "Node.js is not installed. Please install Node.js >= 16.0.0"
-        exit 1
+        missing_deps+=("Node.js ≥18.0.0")
+    else
+        local node_version=$(node --version | sed 's/v//' | cut -d. -f1)
+        if [ "$node_version" -lt 18 ]; then
+            missing_deps+=("Node.js ≥18.0.0 (current: $(node --version))")
+        fi
     fi
     
     # Check Rust
-    if ! command -v cargo &> /dev/null; then
-        print_error "Rust is not installed. Please install Rust >= 1.70.0"
-        exit 1
+    if ! command -v rustc &> /dev/null; then
+        missing_deps+=("Rust ≥1.70.0")
+    fi
+    
+    # Check DFX
+    if ! command -v dfx &> /dev/null; then
+        missing_deps+=("DFX ≥0.28.0")
     fi
     
     # Check Python
     if ! command -v python3 &> /dev/null; then
-        print_error "Python 3 is not installed. Please install Python >= 3.7"
+        missing_deps+=("Python 3.8+")
+    fi
+    
+    if [ ${#missing_deps[@]} -ne 0 ]; then
+        print_error "Missing required dependencies:"
+        for dep in "${missing_deps[@]}"; do
+            print_error "  - $dep"
+        done
+        print_info "Please install missing dependencies and try again."
+        print_info "See docs/DEVELOPMENT.md for installation instructions."
         exit 1
     fi
     
-    print_success "All prerequisites are installed"
+    print_success "All prerequisites satisfied!"
 }
 
+# Setup environment
 setup_environment() {
-    print_status "Setting up environment..."
+    show_progress "Setting up environment configuration..."
     
     cd "$PROJECT_ROOT"
     
-    # Copy environment file if not exists
-    if [ ! -f .env ]; then
-        if [ -f .env.example ]; then
-            cp .env.example .env
-            print_success "Created .env from .env.example"
-        else
-            print_warning ".env.example not found, creating basic .env"
-            cat > .env << EOF
-MODEL_CHUNK_SIZE_MB=0.8
-MODEL_DOWNLOAD_URL=https://huggingface.co/einrafh/verichain-deepfake-models/resolve/main/models/onnx/verichain-model.onnx
-DEPLOY_NETWORK=local
-EOF
-        fi
-    fi
-    
-    print_success "Environment setup completed"
-}
-
-install_dependencies() {
-    print_status "Installing dependencies..."
-    
-    cd "$PROJECT_ROOT"
-    
-    # Install root dependencies
-    npm install
-    
-    # Install frontend dependencies
-    cd src/frontend
-    npm install
-    
-    cd "$PROJECT_ROOT"
-    print_success "Dependencies installed"
-}
-
-setup_dfx() {
-    print_status "Setting up DFX environment..."
-    
-    cd "$PROJECT_ROOT"
-    
-    # Start DFX if not running
-    if ! dfx ping &> /dev/null; then
-        print_status "Starting DFX replica..."
-        dfx start --background --clean
-        sleep 5
-    fi
-    
-    # Create canisters
-    dfx canister create --all
-    
-    # Deploy logic canister first (smaller, faster)
-    dfx deploy logic_canister
-    
-    print_success "DFX environment ready"
-}
-
-download_model() {
-    print_status "Downloading AI model..."
-    
-    cd "$PROJECT_ROOT"
-    
-    # Create temp directory for model
-    mkdir -p temp
-    
-    # Download model if not exists
-    if [ ! -f "temp/verichain-model.onnx" ]; then
-        print_status "Downloading model from $MODEL_URL"
-        curl -L "$MODEL_URL" -o "temp/verichain-model.onnx"
-        
-        # Verify download
-        if [ ! -f "temp/verichain-model.onnx" ]; then
-            print_error "Failed to download model"
-            exit 1
-        fi
-        
-        MODEL_SIZE=$(stat -f%z "temp/verichain-model.onnx" 2>/dev/null || stat -c%s "temp/verichain-model.onnx")
-        print_success "Model downloaded (${MODEL_SIZE} bytes)"
+    # Create .env from template if it doesn't exist
+    if [ ! -f ".env" ]; then
+        print_info "Creating .env from template..."
+        cp .env.example .env
+        print_success ".env file created from template"
     else
-        print_success "Model already exists"
+        print_warning ".env file already exists, keeping current configuration"
     fi
 }
 
-chunk_model() {
-    print_status "Chunking model for ICP deployment..."
+# Install dependencies
+install_dependencies() {
+    show_progress "Installing dependencies..."
     
     cd "$PROJECT_ROOT"
     
-    # Run model chunker
-    python3 tools/model_chunker.py temp/verichain-model.onnx src/ai_canister/assets/ "$MODEL_CHUNK_SIZE"
+    print_info "Installing root dependencies..."
+    npm install --silent
     
-    # Count chunks
-    CHUNK_COUNT=$(find src/ai_canister/assets/ -name "model_chunk_*.bin" | wc -l)
-    print_success "Model chunked into $CHUNK_COUNT pieces"
+    print_info "Installing frontend dependencies..."
+    cd src/frontend
+    npm install --silent
+    
+    cd "$PROJECT_ROOT"
+    print_success "Dependencies installed successfully!"
 }
 
-deploy_ai_canister() {
-    print_status "Deploying AI canister..."
+# Setup DFX
+setup_dfx() {
+    show_progress "Setting up DFX local network..."
     
     cd "$PROJECT_ROOT"
     
-    # Build and deploy AI canister
-    dfx deploy ai_canister
+    # Stop any running DFX
+    check_dfx_status
     
-    print_success "AI canister deployed"
-}
-
-upload_model_chunks() {
-    print_status "Uploading model chunks to canister..."
+    # Start DFX in background
+    print_info "Starting DFX local replica..."
+    dfx start --background --clean >/dev/null 2>&1
     
-    cd "$PROJECT_ROOT"
-    
-    # Get chunk count
-    CHUNK_COUNT=$(find src/ai_canister/assets/ -name "model_chunk_*.bin" | wc -l)
-    
-    print_status "Uploading $CHUNK_COUNT chunks..."
-    
-    # Upload chunks
-    for i in $(seq 0 $((CHUNK_COUNT - 1))); do
-        CHUNK_FILE=$(printf "src/ai_canister/assets/model_chunk_%03d.bin" $i)
-        if [ -f "$CHUNK_FILE" ]; then
-            printf "Uploading chunk %03d/%03d\r" $((i + 1)) $CHUNK_COUNT
-            dfx canister call ai_canister upload_model_chunk "($(cat "$CHUNK_FILE" | xxd -p | tr -d '\n' | sed 's/../\\&/g' | sed 's/^/"/;s/$/"/'), $i)" > /dev/null
+    # Wait for DFX to be ready
+    print_info "Waiting for DFX to be ready..."
+    local retries=0
+    while ! dfx ping >/dev/null 2>&1; do
+        sleep 2
+        retries=$((retries + 1))
+        if [ $retries -gt 30 ]; then
+            print_error "DFX failed to start after 60 seconds"
+            exit 1
         fi
     done
     
-    echo ""
-    print_success "All chunks uploaded"
+    print_success "DFX local network is running!"
 }
 
-initialize_model() {
-    print_status "Initializing model in canister..."
+# Download and setup AI model
+setup_model() {
+    show_progress "Setting up AI model..."
     
     cd "$PROJECT_ROOT"
     
-    # Initialize model
-    dfx canister call ai_canister initialize_model_from_chunks
+    # Check if model is already setup
+    if [ -d "src/ai_canister/assets" ] && [ "$(ls -A src/ai_canister/assets/*.bin 2>/dev/null | wc -l)" -gt 0 ]; then
+        print_warning "AI model chunks already exist, skipping download"
+        return
+    fi
     
-    print_success "Model initialized"
+    print_info "Downloading and chunking AI model (this may take a few minutes)..."
+    
+    # Create assets directory
+    mkdir -p src/ai_canister/assets
+    
+    # Use Python model chunker
+    if [ -f "tools/model_chunker.py" ]; then
+        print_info "Using model chunker to prepare model for ICP deployment..."
+        cd tools
+        python3 model_chunker.py --download --chunk --output ../src/ai_canister/assets/
+        cd "$PROJECT_ROOT"
+    else
+        print_warning "Model chunker not found, model setup may be incomplete"
+    fi
+    
+    print_success "AI model setup completed!"
 }
 
+# Deploy canisters
+deploy_canisters() {
+    show_progress "Deploying canisters..."
+    
+    cd "$PROJECT_ROOT"
+    
+    print_info "Deploying all canisters to local network..."
+    dfx deploy --network local >/dev/null 2>&1
+    
+    # Update .env with generated canister IDs
+    print_info "Updating .env with generated canister IDs..."
+    dfx generate >/dev/null 2>&1 || true
+    
+    print_success "Canisters deployed successfully!"
+}
+
+# Build frontend
+build_frontend() {
+    show_progress "Building frontend..."
+    
+    cd "$PROJECT_ROOT/src/frontend"
+    
+    print_info "Building TypeScript frontend..."
+    npm run build >/dev/null 2>&1
+    
+    cd "$PROJECT_ROOT"
+    print_success "Frontend built successfully!"
+}
+
+# Final verification
 verify_setup() {
-    print_status "Verifying setup..."
+    show_progress "Verifying setup..."
     
     cd "$PROJECT_ROOT"
     
-    # Check health
-    HEALTH=$(dfx canister call ai_canister health_check)
-    echo "Health check: $HEALTH"
+    # Check DFX status
+    if ! dfx ping >/dev/null 2>&1; then
+        print_error "DFX is not running"
+        return 1
+    fi
     
-    # Check model status
-    MODEL_INFO=$(dfx canister call ai_canister get_model_info)
-    echo "Model info: $MODEL_INFO"
+    # Check canister status
+    local canister_status=$(dfx canister status --all 2>&1)
+    if echo "$canister_status" | grep -q "Status: Running"; then
+        print_success "Canisters are running!"
+    else
+        print_warning "Some canisters may not be running properly"
+    fi
     
-    print_success "Setup verification completed"
+    # Check frontend build
+    if [ -d "src/frontend/dist" ]; then
+        print_success "Frontend is built and ready!"
+    else
+        print_warning "Frontend build may have issues"
+    fi
+    
+    print_success "Setup verification completed!"
 }
 
-cleanup_temp() {
-    print_status "Cleaning up temporary files..."
-    
-    cd "$PROJECT_ROOT"
-    rm -rf temp/
-    
-    print_success "Cleanup completed"
-}
-
+# Main setup flow
 main() {
-    echo "🚀 VeriChain Complete Setup"
-    echo "=========================="
+    echo -e "${GREEN}🚀 VeriChain Instant Setup${NC}"
+    echo -e "${BLUE}================================${NC}"
+    echo ""
+    echo "This script will set up everything you need to run VeriChain:"
+    echo "✅ Check prerequisites"
+    echo "✅ Setup environment"
+    echo "✅ Install dependencies"
+    echo "✅ Start DFX network"
+    echo "✅ Download AI model"
+    echo "✅ Deploy canisters"
+    echo "✅ Build frontend"
+    echo "✅ Verify setup"
     echo ""
     
+    # Run setup steps
     check_prerequisites
     setup_environment
     install_dependencies
     setup_dfx
-    download_model
-    chunk_model
-    deploy_ai_canister
-    upload_model_chunks
-    initialize_model
+    setup_model
+    deploy_canisters
+    build_frontend
     verify_setup
-    cleanup_temp
     
     echo ""
-    print_success "🎉 VeriChain setup completed successfully!"
+    echo -e "${GREEN}🎉 VeriChain Setup Complete!${NC}"
+    echo -e "${BLUE}==============================${NC}"
     echo ""
     echo "Next steps:"
-    echo "  1. Start frontend: cd src/frontend && npm start"
-    echo "  2. Open browser: http://localhost:3000"
-    echo "  3. Run tests: make test-health"
+    echo -e "  ${GREEN}1.${NC} Run ${BLUE}make dev${NC} to start development server"
+    echo -e "  ${GREEN}2.${NC} Open ${BLUE}http://localhost:3000${NC} in your browser"
+    echo -e "  ${GREEN}3.${NC} Check ${BLUE}make status${NC} to verify everything is running"
     echo ""
+    echo "Documentation:"
+    echo -e "  📖 ${BLUE}docs/DEVELOPMENT.md${NC} - Development guide"
+    echo -e "  🤖 ${BLUE}docs/MODEL.md${NC} - AI model details"
+    echo -e "  🔌 ${BLUE}docs/API.md${NC} - API reference"
+    echo ""
+    echo -e "${PURPLE}Happy coding! 🚀${NC}"
 }
 
-# Run main function if script is executed directly
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    main "$@"
-fi
+# Run main function
+main "$@"

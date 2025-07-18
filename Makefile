@@ -52,16 +52,30 @@ install: ## Install all dependencies
 	@cd $(FRONTEND_DIR) && npm install
 	$(call print_success,"Dependencies installed")
 
-setup: ## Complete project setup with model deployment
-	@echo "Running complete VeriChain setup..."
+setup: ## 🚀 Complete instant setup for new users (one command setup)
+	@echo "$(GREEN)Starting VeriChain Complete Setup...$(NC)"
+	@echo "This will setup everything you need to run VeriChain!"
+	@echo ""
 	@bash $(SCRIPTS_DIR)/setup.sh
-	$(call print_success,"Complete setup finished")
+	$(call print_success,"🎉 VeriChain setup completed! Run 'make dev' to start.")
 
 model-setup: ## Download and prepare AI model only
 	@echo "Setting up AI model..."
 	@bash $(SCRIPTS_DIR)/setup.sh download_model
 	@bash $(SCRIPTS_DIR)/setup.sh chunk_model
 	$(call print_success,"Model setup completed")
+
+reset-setup: ## 🔄 Reset everything and start fresh setup
+	@echo "$(YELLOW)Resetting VeriChain to clean state...$(NC)"
+	@echo "This will remove all build artifacts and restart setup."
+	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	@bash $(SCRIPTS_DIR)/reset-setup.sh
+	$(call print_success,"Reset completed. Run 'make setup' to reinstall.")
+
+clean-setup: ## 🧹 Clean setup (keeps dependencies, resets configuration)
+	@echo "$(YELLOW)Cleaning setup while preserving dependencies...$(NC)"
+	@bash $(SCRIPTS_DIR)/clean-setup.sh
+	$(call print_success,"Clean setup completed.")
 
 ## Development Commands
 dev: ## Start complete development environment
