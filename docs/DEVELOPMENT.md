@@ -42,8 +42,28 @@ verichain/
 │   ├── ai_canister/        # Rust - AI processing engine
 │   ├── logic_canister/     # Motoko - Business logic & user management
 │   └── frontend/           # TypeScript React - User interface
-├── scripts/                # Build automation
-└── docs/                   # Documentation
+├── scripts/                # Build automation scripts
+│   ├── setup.sh           # Main setup script
+│   ├── build.sh           # Build all components
+│   ├── deploy.sh          # Deploy to ICP
+│   ├── dev.sh             # Development server
+│   ├── test.sh            # Run tests
+│   ├── clean-setup.sh     # Clean setup (keeps deps)
+│   └── reset-setup.sh     # Complete reset
+├── tools/                  # Utility tools
+│   └── model_chunker.py   # AI model chunking for ICP
+├── test-files/             # Test assets
+│   └── sample-image.jpg   # Sample test image
+├── docs/                   # Documentation
+├── target/                 # Rust build artifacts
+├── .dfx/                   # DFX local network data
+├── node_modules/           # Node.js dependencies
+├── Makefile               # Build automation commands
+├── dfx.json               # Internet Computer configuration
+├── Cargo.toml             # Rust workspace configuration
+├── package.json           # Node.js project configuration
+├── docker-compose.yml     # Docker development setup
+└── mops.toml              # Motoko package manager
 ```
 
 ## Frontend Development
