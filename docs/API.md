@@ -2,16 +2,100 @@
 
 ## Overview
 
-VeriChain provides a comprehensive API for deepfake detection across multiple media formats. All endpoints return consistent response formats with detailed confidence metrics.
+VeriChain provides a comprehensive API for deepfake detection accessible through direct canister calls (ICP) and REST endpoints. The frontend uses real-time TypeScript integration with `@dfinity/agent`.
+
+## Integration Methods
+
+### 1. TypeScript Frontend Integration (Recommended)
+
+Use the VeriChain TypeScript services for real-time integration:
+
+```typescript
+import { CoreAIService } from './services/coreAI.service';
+import { ModelManagementService } from './services/modelManagement.service';
+
+// Initialize services
+const aiService = new CoreAIService();
+const modelService = new ModelManagementService();
+
+// Analyze image
+const analysisResult = await aiService.analyzeImage(imageFile);
+console.log(`Prediction: ${analysisResult.prediction} (${analysisResult.confidence}%)`);
+
+// Check model status
+const modelStatus = await modelService.getModelStatus();
+console.log(`Model ready: ${modelStatus.isReady}`);
+```
+
+### 2. Direct Canister Calls (ICP Native)
+
+```typescript
+import { createActor } from 'declarations/ai_canister';
+
+const actor = createActor('your-canister-id', {
+  agentOptions: {
+    host: process.env.DFX_NETWORK === 'local' 
+      ? 'http://127.0.0.1:4943' 
+      : 'https://icp-api.io'
+  }
+});
+
+const result = await actor.analyze_image(imageData);
+```
+
+### 3. REST API (HTTP Interface)
+
+For non-ICP applications, use standard HTTP endpoints.
 
 ## Base URL
 
 - **Local Development**: `http://localhost:4943`
 - **Production**: `https://your-canister-id.icp0.io`
+- **TypeScript Environment**: Configured via `process.env.CANISTER_ID_AI_CANISTER`
 
-## Authentication
+## Authentication & User Tiers
 
-Currently, VeriChain operates without authentication for basic usage. Premium features require user registration through the frontend interface.
+VeriChain operates with a three-tier user system:
+
+### User Tiers
+
+| Tier | Authentication | Monthly Limit | Features |
+|------|----------------|---------------|----------|
+| **Guest (Non-login)** | None required | 3 analyses | Basic detection only |
+| **Registered User** | Login required | 30 analyses | Full API access, history |
+| **Premium User** | Login + subscription | 1,000 analyses | Priority processing, advanced features |
+
+### Authentication Methods
+
+#### Guest Usage (No Authentication)
+```typescript
+// Direct API calls without authentication
+const response = await fetch('/analyze_image', {
+  method: 'POST',
+  body: imageFile,
+  headers: { 'Content-Type': 'application/octet-stream' }
+});
+```
+
+#### Registered/Premium Users
+```typescript
+// With authentication token
+const response = await fetch('/analyze_image', {
+  method: 'POST',
+  body: imageFile,
+  headers: {
+    'Content-Type': 'application/octet-stream',
+    'Authorization': 'Bearer your-auth-token'
+  }
+});
+```
+
+### Rate Limits & Quotas
+
+- **Guest Users**: 3 analyses total (lifetime limit)
+- **Registered Users**: 30 analyses per month (resets monthly)
+- **Premium Users**: 1,000 analyses per month (resets monthly)
+- **API Rate Limit**: 10 requests per minute (all tiers)
 
 ## Core Endpoints
 
@@ -35,6 +119,11 @@ Body: [image binary data]
   "media_type": "Image",
   "processing_time_ms": number,
   "frames_analyzed": 1,
+  "user_info": {
+    "tier": "guest|registered|premium",
+    "remaining_quota": number,
+    "quota_resets_at": "ISO 8601 date (null for guest)"
+  },
   "metadata": {
     "model_version": "1.0.0",
     "threshold": 0.5,
@@ -173,13 +262,28 @@ All endpoints return consistent error formats:
 - `FILE_TOO_LARGE`: File exceeds size limits
 - `MODEL_NOT_LOADED`: AI model not initialized
 - `PROCESSING_ERROR`: Internal processing failure
-- `RATE_LIMIT_EXCEEDED`: Usage quota exceeded
+- `RATE_LIMIT_EXCEEDED`: API rate limit exceeded (10 req/min)
+- `QUOTA_EXCEEDED`: Monthly quota limit reached
+- `GUEST_LIMIT_REACHED`: Guest user reached 3-analysis limit
+- `AUTH_REQUIRED`: Authentication needed for this tier
+- `INVALID_TOKEN`: Authentication token invalid or expired
 
 ## Rate Limits
 
-- **Free Users**: 3 analyses per month
-- **Premium Users**: 1000 analyses per month
-- **API Rate**: 10 requests per minute
+### Monthly Quotas
+- **Guest Users**: 3 analyses (lifetime)
+- **Registered Users**: 30 analyses per month 
+- **Premium Users**: 1,000 analyses per month
+
+### Rate Limiting
+- **API Requests**: 10 requests per minute (all user tiers)
+- **Concurrent Processing**: 1 file at a time per user
+- **File Size Limits**: 100MB max (all tiers)
+
+### Quota Reset
+- **Registered Users**: Every 1st of the month at 00:00 UTC
+- **Premium Users**: Every 1st of the month at 00:00 UTC
+- **Guest Users**: No reset (lifetime limit)
 
 ## Usage Examples
 

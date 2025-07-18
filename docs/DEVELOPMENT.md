@@ -2,34 +2,148 @@
 
 ## Prerequisites
 
-Ensure you have the following installed:
-
-- **Node.js** ≥ 16.0.0
+- **Node.js** ≥ 18.0.0
 - **Rust** ≥ 1.70.0 
-- **DFX** ≥ 0.15.0
-- **Python** 3.7+ (for model tools)
+- **DFX** ≥ 0.28.0
+- **Python** 3.8+ (for model tools)
 - **Git**
 
-### System Requirements
+## Quick Setup
 
-- **RAM**: Minimum 8GB (16GB recommended)
-- **Storage**: 5GB free space
-- **OS**: Linux, macOS, or Windows with WSL2
-
-## Installation
-
-### Quick Setup
+### Instant Setup (Recommended)
 
 ```bash
-# Clone repository
+# One command setup - everything automated!
 git clone https://github.com/verichain-protocol/verichain.git
 cd verichain
+make setup
+```
 
-# Complete setup
-make full-setup
+The `make setup` command handles everything:
+- ✅ Prerequisites checking with helpful error messages
+- ✅ Environment configuration (.env setup)
+- ✅ Dependency installation (npm packages)
+- ✅ DFX network startup with error recovery
+- ✅ AI model download and chunking
+- ✅ Canister deployment with ID injection
+- ✅ Frontend build and verification
+
+### Troubleshooting Setup
+
+```bash
+# If setup fails or you want to start fresh
+make reset-setup    # Complete reset (removes everything)
+make clean-setup    # Clean reset (keeps dependencies)
+make status         # Check what's running
+```
+
+### Manual Setup (Advanced Users)
+
+```bash
+# Step by step manual setup
+cp .env.example .env        # Configure environment
+make install               # Install dependencies only
+make model-setup           # Setup AI model only
+dfx start --background     # Start DFX manually
+dfx deploy                # Deploy canisters manually
+make build                # Build frontend manually
+```
 
 # Start development environment
 make dev
+```
+
+## Frontend Development (TypeScript)
+
+### Architecture Overview
+
+VeriChain frontend is built with modern TypeScript and React, featuring:
+
+- **Real AI Integration**: Direct canister calls via `@dfinity/agent`
+- **Modular Services**: Organized service layer for AI operations
+- **Type Safety**: Complete TypeScript with strict type checking
+- **Modern Build**: Vite with hot reload and optimized production builds
+
+### Frontend Structure
+
+```
+src/frontend/src/
+├── components/           # React components
+│   ├── AIDetection.tsx   # Main detection interface
+│   ├── ModelStatus.tsx   # AI model status panel
+│   └── SocialMediaUpload.tsx # Social media URL analysis
+├── services/             # Business logic layer
+│   ├── coreAI.service.ts # Direct AI canister integration
+│   ├── modelManagement.service.ts # Model lifecycle
+│   └── utilityIntegration.service.ts # Utility functions
+├── types/                # TypeScript definitions
+│   ├── ai.types.ts       # AI-related types
+│   ├── component.types.ts # Component interfaces
+│   └── utility.types.ts  # Utility types
+├── utils/                # Helper functions
+│   ├── validation.ts     # Input validation
+│   ├── performance.ts    # Performance monitoring
+│   └── hash.ts          # File hashing
+└── styles/              # SCSS styling
+    ├── main.scss        # Main styles
+    └── components/      # Component-specific styles
+```
+
+### Environment Integration
+
+The frontend uses Vite with environment variable injection:
+
+```javascript
+// vite.config.js - Environment variable prefixes
+environment("all", { prefix: "CANISTER_" }),
+environment("all", { prefix: "DFX_" }),
+environment("all", { prefix: "AI_" }),
+// ... more prefixes
+```
+
+### Real AI Canister Integration
+
+```typescript
+// src/services/coreAI.service.ts
+import { createActor } from '../../../declarations/ai_canister';
+
+class CoreAIService {
+  private canisterId = process.env.CANISTER_ID_AI_CANISTER;
+  private actor = createActor(this.canisterId, {
+    agentOptions: {
+      host: process.env.DFX_NETWORK === 'local' 
+        ? 'http://127.0.0.1:4943' 
+        : 'https://icp-api.io'
+    }
+  });
+  
+  async analyzeImage(file: File): Promise<AnalysisResult> {
+    // Real canister call implementation
+    return await this.actor.analyze_image(imageData);
+  }
+}
+```
+
+### Development Workflow
+
+```bash
+# Frontend development
+cd src/frontend
+
+# Install dependencies
+npm install
+
+# Development server (with environment injection)
+npm run dev
+
+# Build for production
+npm run build
+
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
 ```
 
 ### Manual Setup

@@ -1,4 +1,10 @@
-# VeriChain Model Information
+# VeriChain AI Model Documentation
+
+## 🔗 Model Resources
+
+- **🤗 Model Repository**: [einrafh/verichain-deepfake-models](https://huggingface.co/einrafh/verichain-deepfake-models)
+- **📊 Training Dataset**: [einrafh/verichain-deepfake-data](https://huggingface.co/datasets/einrafh/verichain-deepfake-data)
+- **⚙️ Training Pipeline**: [verichain-ai-model](https://github.com/verichain-protocol/verichain-ai-model)
 
 ## Overview
 
@@ -8,7 +14,7 @@ VeriChain utilizes a fine-tuned Vision Transformer (ViT) model specifically trai
 
 ### Vision Transformer (ViT)
 
-The VeriChain model is based on the Vision Transformer architecture, which has proven highly effective for image classification tasks.
+The VeriChain model is based on the Vision Transformer architecture, optimized for deepfake detection with state-of-the-art performance.
 
 **Key Specifications**:
 - **Input Size**: 224×224 pixels
@@ -18,8 +24,10 @@ The VeriChain model is based on the Vision Transformer architecture, which has p
 - **Attention Heads**: 12
 - **Transformer Layers**: 12
 - **Output Classes**: 3 (Real, AI-Generated, Deepfake)
+- **Model Format**: ONNX for optimized inference
+- **Model Size**: 327.56 MB (chunked for ICP deployment)
 
-### Model Performance
+### Performance Metrics
 
 Evaluated on a held-out test set of 2,000 images:
 
@@ -28,6 +36,7 @@ Evaluated on a held-out test set of 2,000 images:
 | **Test Accuracy** | **99.90%** |
 | **F1-Score (Macro)** | **99.90%** |
 | Test Loss | 0.0202 |
+| **Inference Time** | 200-500ms per image |
 
 #### Classification Report
 
@@ -39,12 +48,54 @@ Evaluated on a held-out test set of 2,000 images:
 
 ## Model Deployment
 
+## Dataset Information
+
+### VeriChain Deepfake Dataset
+
+The model is trained on a comprehensive dataset available at [einrafh/verichain-deepfake-data](https://huggingface.co/datasets/einrafh/verichain-deepfake-data).
+
+**Dataset Composition**:
+- **Total Images**: 50,000+ curated samples
+- **Real Images**: Natural photographs and portraits
+- **AI-Generated**: Stable Diffusion, DALL-E, Midjourney outputs
+- **Deepfake**: FaceSwap, DeepFaceLab, and modern synthesis
+
+**Data Quality**:
+- **Manual Verification**: Human-verified labels
+- **Resolution**: Minimum 224×224 pixels
+- **Format**: JPEG/PNG with quality control
+- **Balanced Distribution**: Equal representation across classes
+- **Ethical Sourcing**: Publicly available content with proper attribution
+
+### Training Pipeline
+
+The complete training pipeline is available at [verichain-ai-model](https://github.com/verichain-protocol/verichain-ai-model).
+
+**Training Process**:
+1. **Data Preprocessing**: Resize, normalize, augmentation
+2. **Model Fine-tuning**: ViT base model adaptation
+3. **Hyperparameter Optimization**: Learning rate, batch size tuning
+4. **Validation**: Cross-validation and holdout testing
+5. **ONNX Conversion**: Optimized inference format
+6. **ICP Preparation**: Model chunking for canister deployment
+
+**Training Configuration**:
+- **Base Model**: `google/vit-base-patch16-224`
+- **Learning Rate**: 2e-5 with cosine scheduler
+- **Batch Size**: 32 (effective batch size 128)
+- **Epochs**: 10 with early stopping
+- **Optimizer**: AdamW with weight decay
+- **Loss Function**: Cross-entropy with label smoothing
+
+## ICP Deployment Architecture
+
 ### File Structure
 
 - **Original Model**: `verichain-model.onnx` (327.56 MB)
-- **Chunked Format**: 410 chunks of ~800KB each
+- **Chunked Format**: Auto-chunked based on `MODEL_CHUNK_SIZE_MB`
 - **Storage**: Internet Computer stable memory
 - **Format**: ONNX for optimized inference
+- **Environment**: Configurable via `.env` variables
 
 ### Chunk Management
 
