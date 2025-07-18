@@ -178,8 +178,21 @@ impl DeepfakeDetector {
 
     /// Initialize model from uploaded chunks
     pub fn initialize_from_chunks(&mut self) -> Result<(), String> {
-        if self.chunks.is_empty() {
+        // Load chunks from global storage instead of internal chunks
+        let chunks_result = crate::state::get_all_model_chunks();
+        let chunks = match chunks_result {
+            Ok(chunks) => chunks,
+            Err(e) => return Err(format!("Failed to get model chunks: {}", e)),
+        };
+
+        if chunks.is_empty() {
             return Err("No chunks uploaded".to_string());
+        }
+
+        // Convert global chunks to internal format for assembly
+        self.chunks.clear();
+        for chunk in chunks {
+            self.chunks.insert(chunk.chunk_id, chunk.data);
         }
 
         // Assemble model data
