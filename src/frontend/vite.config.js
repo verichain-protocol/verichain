@@ -37,6 +37,16 @@ export default defineConfig({
     react(),
     environment("all", { prefix: "CANISTER_" }),
     environment("all", { prefix: "DFX_" }),
+    environment("all", { prefix: "DEPLOY_" }),
+    environment("all", { prefix: "NODE_" }),
+    environment("all", { prefix: "FRONTEND_" }),
+    environment("all", { prefix: "AI_" }),
+    environment("all", { prefix: "MODEL_" }),
+    environment("all", { prefix: "LOG_" }),
+    environment("all", { prefix: "TEST_" }),
+    environment("all", { prefix: "BATCH_" }),
+    environment("all", { prefix: "MAX_" }),
+    environment("all", { prefix: "INFERENCE_" }),
   ],
   resolve: {
     alias: [

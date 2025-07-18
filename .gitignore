@@ -40,14 +40,18 @@ build/
 mops.lock
 .vessel/
 
-# AI model binaries (large files) - downloaded automatically
+# AI model binaries (large files) - downloaded/generated automatically
 src/ai_canister/assets/*.onnx
 src/ai_canister/assets/*.bin
 src/ai_canister/assets/*.pt
 src/ai_canister/assets/*.h5
 src/ai_canister/assets/*.tflite
-# Keep metadata and JSON files
+src/ai_canister/assets/model_chunk_*.bin
+# Keep metadata and config files
 !src/ai_canister/assets/model_metadata.json
+!src/ai_canister/assets/*.json
+!src/ai_canister/assets/*.yaml
+!src/ai_canister/assets/*.toml
 !src/ai_canister/assets/*.json
 
 # Logs and temporary files
