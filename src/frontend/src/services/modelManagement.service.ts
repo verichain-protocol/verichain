@@ -1,6 +1,7 @@
 /**
  * VeriChain Model Management Service
- * Professional service for handling AI model initialization, status monitoring, and lifecycle management
+ * Service for handling AI model initialization, status monitoring, and lifecycle management
+ * Provides real-time feedback during model loading and status checking
  */
 
 import { coreAIService } from './coreAI.service';
@@ -157,7 +158,7 @@ export class ModelManagementService {
   }
 
   /**
-   * Get comprehensive model information
+   * Get complete model information
    * @returns Promise<any> - Model information
    */
   async getModelInfo(): Promise<any> {
@@ -197,7 +198,7 @@ export class ModelManagementService {
   }
 
   /**
-   * Perform comprehensive health check
+   * Perform health check
    * @returns Promise<ModelHealthStatus> - Health status with details
    */
   async performHealthCheck(): Promise<ModelHealthStatus> {
