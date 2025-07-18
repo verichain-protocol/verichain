@@ -2,35 +2,11 @@
 
 ## Overview
 - **Language**: Motoko (Internet Computer)
-- **Purpose**: User management with 3-tier system,### Priority 1: Internet Identit3. **Priority 3**: Premium API gateway (Nice to have)
-
-### File Limits (ICP Optimized):
-- Images: 5MB maximum
-- Videos: 25MB maximum
-
----
-
-**Robin: Templates are ready. Start with the core functions in main.mo. Let me know if you need help!** System
-1. `getOrCreateUser()` - Internet Identity login (start here)
-2. `canPerformAnalysis()` - Quota checking (core feature)
-3. `recordAnalysisUsage()` - Usage tracking (core feature)
-4. `getQuotaStatus()` - Show remaining quota
-
-### Priority 2: User Management  
-5. `upgradeUserTier()` - Premium upgrades
-
-### Priority 3: Premium API Gateway (Implement Last)
-6. `generateAPIKey()` - API key for Premium users
-7. `validateAPIRequest()` - API validation
-
-### Robin's Implementation Order:
-1. **Priority 1**: Internet Identity + Quota system (Core MVP)
-2. **Priority 2**: User tier management  
-3. **Priority 3**: Premium API gateway (Nice to have)and Premium API gateway
-- **Authentication**: Internet Identity only (keeping MVP simple)
+- **Purpose**: User management with 3-tier system, quota controls, and Premium API gateway
+- **Authentication**: Internet Identity only (simple MVP approach)
 - **User Tiers**: Guest (3 lifetime), Registered (30/month), Premium (1000/month + API access)
 
-## Authentication Flow
+## Authentication Strategy
 
 ### Internet Identity Integration
 ```
@@ -40,12 +16,12 @@ User ──→ Internet Identity ──→ Principal ID ──→ Logic Canister
 2. Approve  2. Return Principal 2. Send to Logic  2. Check Tier & Quota
 ```
 
-### Why Internet Identity for MVP:
-- **Simplicity** - No password hashing or session management required
-- **Security** - Internet Identity handles all authentication concerns
-- **Development Speed** - Robin can focus on business logic instead of auth
-- **IC Native** - Built specifically for Internet Computer platform
-- **Reliability** - Fewer potential security vulnerabilities
+### Why Internet Identity for MVP
+- **Simplicity**: No password hashing or session management needed
+- **Security**: Internet Identity handles all authentication concerns  
+- **Development Speed**: Robin can focus on business logic instead of auth
+- **IC Native**: Built specifically for Internet Computer platform
+- **Reliability**: Fewer potential security vulnerabilities
 
 ## Project Structure
 
@@ -70,7 +46,7 @@ src/logic_canister/
 └── TODO.md                # This file
 ```
 
-## Core Functions for Robin
+## Core Functions for Robin to Implement
 
 ### 1. User Management (Internet Identity)
 ```motoko
@@ -127,7 +103,7 @@ public type GuestUsage = {
 
 ## Integration Flow
 
-### Main Flow: Internet Identity Only
+### Main Flow: Internet Identity Authentication
 ```
 Frontend ──→ Internet Identity ──→ Logic Canister ──→ AI Canister
     ↓              ↓                   ↓                 ↓
@@ -137,7 +113,7 @@ Frontend ──→ Internet Identity ──→ Logic Canister ──→ AI Canis
 4. Show result 4. Forward request   4. Forward to AI     4. Return to user
 ```
 
-### API Flow (Implement Last - Priority 3)
+### API Flow (Premium Only - Implement Last)
 ```
 External API ──→ Logic Canister ──→ AI Canister
      ↓               ↓                 ↓
@@ -149,17 +125,17 @@ External API ──→ Logic Canister ──→ AI Canister
 
 ## Implementation Steps for Robin
 
-### Phase 1: Basic Setup + IC Authentication (Start Here)
+### Phase 1: Basic Setup + Authentication (Start Here)
 1. Copy data types from `types/` folder to `main.mo`
 2. Set up stable variables for user storage and guest tracking
 3. Implement `getOrCreateUser()` - Internet Identity login
 4. Implement health check function
 
 ### Phase 2: Quota System (Priority 1 - Most Important)
-5. Implement `canPerformAnalysis()` - Check quota limits (core feature)
-6. Implement `recordAnalysisUsage()` - Track usage (core feature)
+5. Implement `canPerformAnalysis()` - Check quota limits
+6. Implement `recordAnalysisUsage()` - Track usage
 7. Implement `getQuotaStatus()` - Return remaining quota
-8. Test with frontend - Login IC + quota check
+8. Test with frontend - Login and quota check
 
 ### Phase 3: Premium API Gateway (Priority 3 - Do Last)
 9. Implement `generateAPIKey()` - Create API keys for Premium users
@@ -168,12 +144,12 @@ External API ──→ Logic Canister ──→ AI Canister
 
 ## Success Criteria
 
-- Guest Users: Maximum 3 lifetime analyses (tracked by IP)
-- Registered Users: 30 analyses per month (resets monthly)
-- Premium Users: 1000 analyses per month + API access
-- API Access: Premium tier only, validated by API key
-- Authentication: Internet Identity Principal-based
-- Monthly Reset: Quotas automatically reset each month
+- **Guest Users**: Maximum 3 lifetime analyses (tracked by IP)
+- **Registered Users**: 30 analyses per month (resets monthly)
+- **Premium Users**: 1000 analyses per month + API access
+- **API Access**: Premium tier only, validated by API key
+- **Authentication**: Internet Identity Principal-based
+- **Monthly Reset**: Quotas automatically reset each month
 
 ## Development Workflow
 
@@ -185,24 +161,25 @@ External API ──→ Logic Canister ──→ AI Canister
 
 ## Quick Reference for Robin
 
-### Priority 1: Internet Identity + Quota System
-1. `getOrCreateUser()` - Internet Identity login (SIMPLE & FIRST)
-2. `canPerformAnalysis()` - Quota checking (CORE FEATURE)
-3. `recordAnalysisUsage()` - Usage tracking (CORE FEATURE)
+### Priority 1: Authentication + Quota System
+1. `getOrCreateUser()` - Internet Identity login (start here)
+2. `canPerformAnalysis()` - Quota checking (core feature)
+3. `recordAnalysisUsage()` - Usage tracking (core feature)
 4. `getQuotaStatus()` - Show remaining quota
 
-### 🔧 PRIORITY #2: User Management  
-5. `upgradeUserTier()` - Premium upgrades (SECOND)
+### Priority 2: User Management  
+5. `upgradeUserTier()` - Premium upgrades
 
-### � PRIORITY #3: Premium API Gateway (LAST!)
-6. `generateAPIKey()` - API key for Premium (DO LAST)
-7. `validateAPIRequest()` - API validation (DO LAST)
+### Priority 3: Premium API Gateway (Implement Last)
+6. `generateAPIKey()` - API key for Premium users
+7. `validateAPIRequest()` - API validation
 
-### 🎯 Robin's New Priority Order:
-1. **PRIORITY #1**: Internet Identity + Quota system (CORE MVP)
-2. **PRIORITY #2**: User tier management  
-3. **PRIORITY #3**: Premium API gateway (NICE TO HAVE)
+### Robin's Implementation Order
+1. **Priority 1**: Internet Identity + Quota system (Core MVP)
+2. **Priority 2**: User tier management  
+3. **Priority 3**: Premium API gateway (Nice to have)
 
-### File Limits (ICP Optimized):
-- Images: 5MB maximum
-- Videos: 25MB maximum
+### Technical Constraints
+- **File Limits**: Images 5MB max, Videos 25MB max (ICP optimized)
+- **Quota Limits**: Guest 3 lifetime, Registered 30/month, Premium 1000/month
+- **API Access**: Premium tier only
