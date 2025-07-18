@@ -39,7 +39,7 @@ handle_error() {
 trap 'handle_error $LINENO' ERR
 
 # Progress tracking
-TOTAL_STEPS=8
+TOTAL_STEPS=10
 CURRENT_STEP=0
 
 show_progress() {
@@ -49,11 +49,44 @@ show_progress() {
 
 # Check if DFX is running and handle gracefully
 check_dfx_status() {
+    print_info "Checking DFX status..."
+    
     if dfx ping --quiet >/dev/null 2>&1; then
         print_warning "DFX is already running. Stopping it to ensure clean setup..."
         dfx stop >/dev/null 2>&1 || true
-        sleep 2
+        
+        # Wait for DFX to fully stop
+        local stop_retries=0
+        while dfx ping --quiet >/dev/null 2>&1 && [ $stop_retries -lt 10 ]; do
+            print_info "Waiting for DFX to stop... (${stop_retries}/10)"
+            sleep 2
+            stop_retries=$((stop_retries + 1))
+        done
+        
+        if dfx ping --quiet >/dev/null 2>&1; then
+            print_error "Failed to stop existing DFX instance. Please run 'dfx stop' manually."
+            return 1
+        fi
+        
+        print_success "DFX stopped successfully"
+    else
+        print_info "DFX is not currently running"
     fi
+}
+
+# Ensure DFX is ready for operations
+ensure_dfx_ready() {
+    if ! dfx ping >/dev/null 2>&1; then
+        print_error "DFX is not running. Please run 'dfx start' first or run the full setup."
+        return 1
+    fi
+    
+    if ! dfx identity whoami >/dev/null 2>&1; then
+        print_error "DFX identity not available. DFX may not be properly initialized."
+        return 1
+    fi
+    
+    return 0
 }
 
 # Check prerequisites
@@ -114,6 +147,11 @@ setup_environment() {
     else
         print_warning ".env file already exists, keeping current configuration"
     fi
+    
+    # Load environment variables
+    if [ -f ".env" ]; then
+        export $(grep -v '^#' .env | xargs)
+    fi
 }
 
 # Install dependencies
@@ -139,26 +177,55 @@ setup_dfx() {
     
     cd "$PROJECT_ROOT"
     
-    # Stop any running DFX
-    check_dfx_status
+    # Stop any running DFX and verify it stopped
+    if ! check_dfx_status; then
+        print_error "Failed to prepare DFX environment"
+        return 1
+    fi
     
-    # Start DFX in background
+    # Start DFX in background with error handling
     print_info "Starting DFX local replica..."
-    dfx start --background --clean >/dev/null 2>&1
+    if ! dfx start --background --clean >/dev/null 2>&1; then
+        print_error "Failed to start DFX. Trying without --clean flag..."
+        if ! dfx start --background >/dev/null 2>&1; then
+            print_error "Failed to start DFX completely. Please check your DFX installation."
+            print_info "Try running: dfx --version"
+            return 1
+        fi
+    fi
     
-    # Wait for DFX to be ready
+    # Wait for DFX to be ready with more robust checking
     print_info "Waiting for DFX to be ready..."
     local retries=0
-    while ! dfx ping >/dev/null 2>&1; do
+    local max_retries=30
+    
+    while [ $retries -lt $max_retries ]; do
+        if dfx ping >/dev/null 2>&1; then
+            # Double check DFX is truly ready by trying to get identity
+            if dfx identity whoami >/dev/null 2>&1; then
+                print_success "DFX local network is running and ready!"
+                return 0
+            fi
+        fi
+        
+        print_info "DFX starting... (${retries}/${max_retries})"
         sleep 2
         retries=$((retries + 1))
-        if [ $retries -gt 30 ]; then
-            print_error "DFX failed to start after 60 seconds"
-            exit 1
-        fi
     done
     
-    print_success "DFX local network is running!"
+    # If we get here, DFX failed to start properly
+    print_error "DFX failed to start properly after $((max_retries * 2)) seconds"
+    print_info "Checking DFX status for debugging..."
+    
+    # Try to get more information about why DFX failed
+    if ! dfx ping >/dev/null 2>&1; then
+        print_error "DFX ping failed - DFX is not responding"
+    fi
+    
+    print_info "DFX version: $(dfx --version 2>/dev/null || echo 'unknown')"
+    print_info "Try running 'dfx start --verbose' manually to see detailed error messages"
+    
+    return 1
 }
 
 # Download and setup AI model
@@ -178,11 +245,25 @@ setup_model() {
     # Create assets directory
     mkdir -p src/ai_canister/assets
     
-    # Use Python model chunker
+    # Download model if not exists (save to assets directory)
+    MODEL_FILE="src/ai_canister/assets/verichain-model.onnx"
+    if [ ! -f "$MODEL_FILE" ]; then
+        print_info "Downloading AI model from HuggingFace..."
+        if command -v wget >/dev/null 2>&1; then
+            wget -O "$MODEL_FILE" "$MODEL_DOWNLOAD_URL"
+        elif command -v curl >/dev/null 2>&1; then
+            curl -L -o "$MODEL_FILE" "$MODEL_DOWNLOAD_URL"
+        else
+            print_error "Neither wget nor curl found. Please install one of them to download the model."
+            return 1
+        fi
+    fi
+    
+    # Use Python model chunker with correct interface
     if [ -f "tools/model_chunker.py" ]; then
         print_info "Using model chunker to prepare model for ICP deployment..."
         cd tools
-        python3 model_chunker.py --download --chunk --output ../src/ai_canister/assets/
+        python3 model_chunker.py chunk "../$MODEL_FILE" "../src/ai_canister/assets/"
         cd "$PROJECT_ROOT"
     else
         print_warning "Model chunker not found, model setup may be incomplete"
@@ -251,6 +332,218 @@ verify_setup() {
 }
 
 # Main setup flow
+# Upload model chunks to AI canister
+upload_model_chunks() {
+    show_progress "Uploading model chunks to AI canister..."
+    
+    cd "$PROJECT_ROOT"
+    
+    # Ensure DFX is ready
+    if ! ensure_dfx_ready; then
+        print_error "DFX is not ready for model upload operations"
+        return 1
+    fi
+    
+    # Check if chunks exist
+    if [ ! -d "src/ai_canister/assets" ] || [ -z "$(ls -A src/ai_canister/assets/model_chunk_*.bin 2>/dev/null)" ]; then
+        print_error "Model chunks not found. Please run model setup first."
+        return 1
+    fi
+    
+    # Load metadata
+    if [ ! -f "src/ai_canister/assets/model_metadata.json" ]; then
+        print_error "Model metadata not found. Please run model setup first."
+        return 1
+    fi
+    
+    print_info "Reading model metadata..."
+    # Use Python for reliable JSON parsing
+    TOTAL_CHUNKS=$(python3 -c "
+import json
+with open('src/ai_canister/assets/model_metadata.json', 'r') as f:
+    data = json.load(f)
+    print(data.get('total_chunks', 0))
+" 2>/dev/null || echo "0")
+
+    ORIGINAL_SIZE=$(python3 -c "
+import json
+with open('src/ai_canister/assets/model_metadata.json', 'r') as f:
+    data = json.load(f)
+    print(data.get('original_size', 0))
+" 2>/dev/null || echo "0")
+
+    CHUNK_SIZE_MB=$(python3 -c "
+import json
+with open('src/ai_canister/assets/model_metadata.json', 'r') as f:
+    data = json.load(f)
+    print(data.get('chunk_size_mb', 1.0))
+" 2>/dev/null || echo "1.0")
+
+    ORIGINAL_FILE=$(python3 -c "
+import json
+with open('src/ai_canister/assets/model_metadata.json', 'r') as f:
+    data = json.load(f)
+    print(data.get('original_file', ''))
+" 2>/dev/null || echo "")
+
+    if [ -z "$TOTAL_CHUNKS" ] || [ "$TOTAL_CHUNKS" -eq 0 ]; then
+        print_error "Could not read total chunks from metadata"
+        return 1
+    fi
+    
+    print_info "Found $TOTAL_CHUNKS chunks to upload"
+    print_info "Original file: $ORIGINAL_FILE"
+    print_info "Original size: $(echo "scale=2; $ORIGINAL_SIZE / 1024 / 1024" | bc 2>/dev/null || echo $((ORIGINAL_SIZE / 1024 / 1024))) MB"
+    
+    # Round chunk size to nearest integer MB for upload
+    CHUNK_SIZE_MB_INT=$(echo "$CHUNK_SIZE_MB + 0.5" | bc 2>/dev/null | cut -d'.' -f1 || echo "1")
+    
+    # Upload metadata first
+    print_info "Uploading model metadata..."
+    if dfx canister call ai_canister upload_model_metadata "(\"$ORIGINAL_FILE\", ${ORIGINAL_SIZE}:nat64, ${TOTAL_CHUNKS}:nat32, ${CHUNK_SIZE_MB_INT}:nat32)" >/dev/null 2>&1; then
+        print_success "Metadata uploaded successfully"
+    else
+        print_error "Failed to upload metadata"
+        return 1
+    fi
+    
+    # Check current upload status first
+    print_info "Checking current upload status..."
+    UPLOAD_STATUS=$(dfx canister call ai_canister get_upload_status "()" 2>/dev/null || echo "error")
+    
+    if [[ "$UPLOAD_STATUS" == *"error"* ]]; then
+        print_warning "Could not get upload status, continuing with upload..."
+    else
+        print_info "Current upload status: $UPLOAD_STATUS"
+    fi
+    
+    # Upload chunks in batches for better performance
+    BATCH_SIZE=10
+    UPLOADED_COUNT=0
+    FAILED_COUNT=0
+    
+    for ((batch_start=0; batch_start<$TOTAL_CHUNKS; batch_start+=$BATCH_SIZE)); do
+        batch_end=$((batch_start + BATCH_SIZE - 1))
+        if [ $batch_end -ge $TOTAL_CHUNKS ]; then
+            batch_end=$((TOTAL_CHUNKS - 1))
+        fi
+        
+        print_info "Processing batch: chunks $batch_start to $batch_end"
+        BATCH_UPLOADED=0
+        BATCH_FAILED=0
+        
+        for ((i=$batch_start; i<=$batch_end && i<$TOTAL_CHUNKS; i++)); do
+            CHUNK_FILE="src/ai_canister/assets/model_chunk_$(printf "%03d" $i).bin"
+            
+            if [ -f "$CHUNK_FILE" ]; then
+                # Get chunk hash from metadata using Python for better JSON parsing
+                CHUNK_HASH=$(python3 -c "
+import json
+with open('src/ai_canister/assets/model_metadata.json', 'r') as f:
+    data = json.load(f)
+    chunks = data.get('chunks', [])
+    if $i < len(chunks):
+        print(chunks[$i]['hash'])
+    else:
+        print('')
+" 2>/dev/null || echo "")
+                
+                if [ -z "$CHUNK_HASH" ]; then
+                    print_warning "Could not get hash for chunk $i, skipping"
+                    FAILED_COUNT=$((FAILED_COUNT + 1))
+                    continue
+                fi
+                
+                # Create Candid argument file using Python (more reliable)
+                TEMP_ARG_FILE="/tmp/chunk_${i}_args.txt"
+                
+                python3 -c "
+import sys
+with open('$CHUNK_FILE', 'rb') as f:
+    data = f.read()
+bytes_str = '; '.join(str(b) for b in data)
+print(f'(${i}:nat32, vec {{{bytes_str}}}, \"$CHUNK_HASH\")')
+" > "$TEMP_ARG_FILE" 2>/dev/null
+                
+                # Upload chunk using argument file
+                if dfx canister call ai_canister upload_model_chunk --argument-file "$TEMP_ARG_FILE" >/dev/null 2>&1; then
+                    UPLOADED_COUNT=$((UPLOADED_COUNT + 1))
+                    BATCH_UPLOADED=$((BATCH_UPLOADED + 1))
+                    print_info "✅ Uploaded chunk $i ($(($i + 1))/$TOTAL_CHUNKS)"
+                    rm -f "$TEMP_ARG_FILE"
+                else
+                    FAILED_COUNT=$((FAILED_COUNT + 1))
+                    BATCH_FAILED=$((BATCH_FAILED + 1))
+                    print_warning "❌ Failed to upload chunk $i"
+                    rm -f "$TEMP_ARG_FILE"
+                fi
+            else
+                print_warning "Chunk file not found: $CHUNK_FILE"
+                FAILED_COUNT=$((FAILED_COUNT + 1))
+                BATCH_FAILED=$((BATCH_FAILED + 1))
+            fi
+        done
+        
+        # Report batch progress
+        print_info "Batch $((batch_start/BATCH_SIZE + 1)) completed: $BATCH_UPLOADED uploaded, $BATCH_FAILED failed"
+        print_info "Total progress: $UPLOADED_COUNT/$TOTAL_CHUNKS uploaded, $FAILED_COUNT failed"
+        
+        # Small delay between batches to avoid overwhelming the canister
+        sleep 1
+    done
+    
+    print_success "Upload completed: $UPLOADED_COUNT chunks uploaded successfully, $FAILED_COUNT failed!"
+    
+    if [ $FAILED_COUNT -gt 0 ]; then
+        print_warning "Some chunks failed to upload. You may need to retry or check canister status."
+    fi
+}
+
+# Initialize model from uploaded chunks
+initialize_model() {
+    show_progress "Initializing AI model from chunks..."
+    
+    cd "$PROJECT_ROOT"
+    
+    # Ensure DFX is ready
+    if ! ensure_dfx_ready; then
+        print_error "DFX is not ready for model initialization operations"
+        return 1
+    fi
+    
+    print_info "Starting model initialization process..."
+    
+    # Call initialize function
+    RESULT=$(dfx canister call ai_canister initialize_model_from_chunks "()" 2>/dev/null || echo "error")
+    
+    if [[ "$RESULT" == *"Ok"* ]]; then
+        print_success "Model initialization started successfully!"
+        
+        # Monitor initialization progress
+        print_info "Monitoring initialization progress..."
+        for ((i=0; i<30; i++)); do
+            STATUS=$(dfx canister call ai_canister get_initialization_status "()" 2>/dev/null || echo "error")
+            
+            if [[ "$STATUS" == *"Completed"* ]]; then
+                print_success "Model initialization completed!"
+                return 0
+            elif [[ "$STATUS" == *"InProgress"* ]]; then
+                print_info "Initialization in progress... (${i}/30)"
+                sleep 2
+            else
+                print_warning "Initialization status: $STATUS"
+                sleep 2
+            fi
+        done
+        
+        print_warning "Initialization taking longer than expected. Check status manually with:"
+        print_info "dfx canister call ai_canister get_initialization_status '()'"
+    else
+        print_error "Failed to start model initialization: $RESULT"
+        return 1
+    fi
+}
+
 main() {
     echo -e "${GREEN}🚀 VeriChain Instant Setup${NC}"
     echo -e "${BLUE}================================${NC}"
@@ -263,6 +556,8 @@ main() {
     echo "✅ Download AI model"
     echo "✅ Deploy canisters"
     echo "✅ Build frontend"
+    echo "✅ Upload model chunks"
+    echo "✅ Initialize AI model"
     echo "✅ Verify setup"
     echo ""
     
@@ -274,6 +569,8 @@ main() {
     setup_model
     deploy_canisters
     build_frontend
+    upload_model_chunks
+    initialize_model
     verify_setup
     
     echo ""
@@ -293,5 +590,28 @@ main() {
     echo -e "${PURPLE}Happy coding! 🚀${NC}"
 }
 
-# Run main function
-main "$@"
+# Argument handling for individual functions
+case "${1:-main}" in
+    "download_model")
+        setup_model
+        ;;
+    "chunk_model")
+        setup_model
+        ;;
+    "upload_model_chunks")
+        upload_model_chunks
+        ;;
+    "initialize_model")
+        initialize_model
+        ;;
+    "check_prerequisites")
+        check_prerequisites
+        ;;
+    "main"|"")
+        main
+        ;;
+    *)
+        echo "Usage: $0 [download_model|chunk_model|upload_model_chunks|initialize_model|check_prerequisites|main]"
+        exit 1
+        ;;
+esac
