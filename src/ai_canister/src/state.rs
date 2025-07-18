@@ -108,7 +108,7 @@ pub fn initialize_canister() {
     });
     
     // Initialize detector
-    let detector = DeepfakeDetector::new().expect("Failed to initialize detector");
+    let detector = DeepfakeDetector::new();
     DETECTOR.with(|d| {
         *d.borrow_mut() = Some(detector);
     });

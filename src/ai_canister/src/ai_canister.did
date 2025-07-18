@@ -83,6 +83,7 @@ service : {
   analyze_video: (vec nat8) -> (variant { Ok: DetectionResult; Err: text });
   analyze_media: (MediaInput) -> (variant { Ok: DetectionResult; Err: text });
   analyze_social_media: (SocialMediaInput) -> (variant { Ok: DetectionResult; Err: text });
+  analyze_frames: (vec vec nat8) -> (variant { Ok: DetectionResult; Err: text });
   
   // Model management
   upload_model_chunk: (nat32, vec nat8, text) -> (variant { Ok: text; Err: text });
@@ -91,6 +92,15 @@ service : {
   initialize_model_from_chunks: () -> (variant { Ok: text; Err: text });
   continue_model_initialization: (opt nat32) -> (variant { Ok: text; Err: text });
   get_model_initialization_status: () -> (variant { Ok: InitializationStatus; Err: text }) query;
+  
+  // Frontend integration endpoints
+  start_streaming_initialization: () -> (variant { Ok: text; Err: text });
+  continue_initialization: (opt nat32) -> (variant { Ok: record { nat32; nat32 }; Err: text });
+  get_initialization_status: () -> (variant { Ok: InitializationStatus; Err: text }) query;
+  validate_file_format: (text) -> (bool) query;
+  get_loading_stats: () -> (text) query;
+  get_system_metrics: () -> (text) query;
+  get_detailed_model_info: () -> (text) query;
   
   // System information
   get_model_info: () -> (ModelInfo) query;
