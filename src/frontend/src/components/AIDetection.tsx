@@ -55,10 +55,10 @@ export const AIDetection: React.FC<AIDetectionProps> = ({ className = '', onResu
       return;
     }
 
-    // Validate file size (50MB max)
-    const maxSize = 50 * 1024 * 1024;
+    // Validate file size (2MB max for canister limit)
+    const maxSize = 2 * 1024 * 1024; // 2MB to stay under canister limit
     if (file.size > maxSize) {
-      setError('File size must be less than 50MB');
+      setError('File size must be less than 2MB due to canister limitations');
       return;
     }
 

@@ -10,4 +10,3 @@ export { ModelStatus } from './ModelStatus';
 
 // Dashboard Components
 export { default as Analytics } from './Analytics';
-export { default as Settings } from './Settings';

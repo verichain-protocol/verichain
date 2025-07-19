@@ -33,6 +33,23 @@
         box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
         animation: pulse 2s infinite;
       }
+
+      &.uploading {
+        background: #3b82f6;
+        box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+        animation: pulse 2s infinite;
+      }
+
+      &.initializing {
+        background: #8b5cf6;
+        box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+        animation: pulse 2s infinite;
+      }
+
+      &.not-uploaded {
+        background: #f97316;
+        box-shadow: 0 0 8px rgba(249, 115, 22, 0.5);
+      }
       
       &.error {
         background: #ef4444;
@@ -105,12 +122,17 @@
     position: absolute;
     top: calc(100% + 0.5rem);
     right: 0;
-    width: 280px;
+    width: 300px;
     max-width: 90vw;
-    max-height: 70vh;
+    max-height: 60vh;
     overflow-y: auto;
-    background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(26, 26, 46, 0.98) 0%, rgba(22, 33, 62, 0.98) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    animation: modalFadeIn 0.2s ease-out;
     border-radius: 12px;
     padding: 1rem;
     box-shadow: 
@@ -151,6 +173,24 @@
           background: rgba(245, 158, 11, 0.2);
           color: #f59e0b;
           border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        &.uploading {
+          background: rgba(59, 130, 246, 0.2);
+          color: #3b82f6;
+          border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        &.initializing {
+          background: rgba(139, 92, 246, 0.2);
+          color: #8b5cf6;
+          border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        &.not-uploaded {
+          background: rgba(249, 115, 22, 0.2);
+          color: #f97316;
+          border: 1px solid rgba(249, 115, 22, 0.3);
         }
 
         &.error {
@@ -239,6 +279,21 @@
           }
         }
 
+        .action-suggestion {
+          margin-top: 0.75rem;
+          padding: 0.5rem;
+          background: rgba(0, 0, 0, 0.3);
+          border-radius: 6px;
+          border: 1px solid rgba(249, 115, 22, 0.3);
+
+          code {
+            color: #f97316;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.75rem;
+            font-weight: 500;
+          }
+        }
+
         &.error {
           .error-message {
             display: flex;
@@ -299,5 +354,16 @@
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
