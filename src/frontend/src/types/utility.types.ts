@@ -13,12 +13,6 @@ export interface ValidationError {
   field?: string;
 }
 
-export interface ChunkHasherOptions {
-  chunkSize: number;
-  parallel: boolean;
-  algorithm: 'sha256' | 'md5';
-}
-
 export interface PerformanceCheckpoint {
   label: string;
   timestamp: number;

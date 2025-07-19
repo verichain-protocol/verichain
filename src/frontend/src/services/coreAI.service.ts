@@ -2,6 +2,7 @@
 /// Main interface to AI canister for detection operations
 
 import { HttpAgent } from '@dfinity/agent';
+import { IDL } from '@dfinity/candid';
 import { createActor } from '../../../declarations/ai_canister';
 import { DetectionResult, ModelInfo } from '../types/ai.types';
 import { authService } from './auth.service';
@@ -41,7 +42,7 @@ export class CoreAIService {
         agent: this.agent,
       });
 
-      console.log('✅ AI Canister connected successfully');
+      // AI Canister connected successfully
     } catch (error) {
       console.error('❌ Failed to initialize AI agent:', error);
       throw error;
@@ -70,12 +71,15 @@ export class CoreAIService {
     }
     
     try {
-      // Include auth token if available
-      const authToken = authService.getAuthToken();
-      const result = await this.actor.analyze_image(
-        Array.from(imageData),
-        authToken ? { auth_token: authToken } : {}
-      );
+      // Call AI canister - it returns Result<DetectionResult, String>
+      const result = await this.actor.analyze_image(Array.from(imageData));
+      
+      // Handle canister result (Result<DetectionResult, text>)
+      if ('Err' in result) {
+        throw new Error(`AI Canister Error: ${result.Err}`);
+      }
+      
+      const detectionResult = result.Ok;
       
       // Record usage after successful analysis
       authService.recordAnalysisUsage();
@@ -84,27 +88,18 @@ export class CoreAIService {
       const quotaStatus = await authService.getQuotaStatus();
       
       return {
-        is_deepfake: result.is_deepfake,
-        confidence: result.confidence,
+        is_deepfake: detectionResult.is_deepfake,
+        confidence: detectionResult.confidence,
         media_type: 'image',
-        processing_time_ms: result.processing_time_ms || 0,
-        metadata: result.metadata || '{}',
-        model_version: result.model_version,
+        processing_time_ms: detectionResult.processing_time_ms || 0,
+        metadata: detectionResult.metadata || '{}',
+        model_version: '1.0.0', // Use fixed version since canister doesn't return this
         user_info: {
           tier: quotaStatus.tier,
           remaining_quota: quotaStatus.remaining,
           quota_resets_at: quotaStatus.resets_at,
           total_quota: quotaStatus.total
-        },
-        analysis_details: result.analysis_details ? {
-          classification: result.analysis_details.classification,
-          class_confidence: result.analysis_details.class_confidence,
-          classes: {
-            real_probability: result.analysis_details.classes.real_probability,
-            ai_generated_probability: result.analysis_details.classes.ai_generated_probability,
-            deepfake_probability: result.analysis_details.classes.deepfake_probability
-          }
-        } : undefined
+        }
       };
     } catch (error) {
       console.error('❌ Image analysis failed:', error);
@@ -125,12 +120,15 @@ export class CoreAIService {
     }
     
     try {
-      // Include auth token if available
-      const authToken = authService.getAuthToken();
-      const result = await this.actor.analyze_video(
-        Array.from(videoData),
-        authToken ? { auth_token: authToken } : {}
-      );
+      // Call AI canister - it returns Result<DetectionResult, String>
+      const result = await this.actor.analyze_video(Array.from(videoData));
+      
+      // Handle canister result (Result<DetectionResult, text>)
+      if ('Err' in result) {
+        throw new Error(`AI Canister Error: ${result.Err}`);
+      }
+      
+      const detectionResult = result.Ok;
       
       // Record usage after successful analysis
       authService.recordAnalysisUsage();
@@ -139,27 +137,18 @@ export class CoreAIService {
       const quotaStatus = await authService.getQuotaStatus();
       
       return {
-        is_deepfake: result.is_deepfake,
-        confidence: result.confidence,
+        is_deepfake: detectionResult.is_deepfake,
+        confidence: detectionResult.confidence,
         media_type: 'video',
-        processing_time_ms: result.processing_time_ms || 0,
-        metadata: result.metadata || '{}',
-        model_version: result.model_version,
+        processing_time_ms: detectionResult.processing_time_ms || 0,
+        metadata: detectionResult.metadata || '{}',
+        model_version: '1.0.0', // Use fixed version since canister doesn't return this
         user_info: {
           tier: quotaStatus.tier,
           remaining_quota: quotaStatus.remaining,
           quota_resets_at: quotaStatus.resets_at,
           total_quota: quotaStatus.total
-        },
-        analysis_details: result.analysis_details ? {
-          classification: result.analysis_details.classification,
-          class_confidence: result.analysis_details.class_confidence,
-          classes: {
-            real_probability: result.analysis_details.classes.real_probability,
-            ai_generated_probability: result.analysis_details.classes.ai_generated_probability,
-            deepfake_probability: result.analysis_details.classes.deepfake_probability
-          }
-        } : undefined
+        }
       };
     } catch (error) {
       console.error('❌ Video analysis failed:', error);
@@ -205,6 +194,37 @@ export class CoreAIService {
     } catch (error) {
       console.error('❌ Failed to check model status:', error);
       return false;
+    }
+  }
+
+  /**
+   * Get detailed initialization status
+   */
+  async getInitializationStatus(): Promise<any> {
+    try {
+      if (!this.actor) {
+        await this.initializeAgent();
+      }
+
+      const result = await this.actor.get_initialization_status();
+      
+      if ('Ok' in result) {
+        return result.Ok;
+      } else {
+        throw new Error(result.Err || 'Failed to get initialization status');
+      }
+    } catch (error) {
+      console.error('❌ Failed to get initialization status:', error);
+      // Return default status if canister call fails
+      return {
+        is_initialized: false,
+        is_streaming: false,
+        processed_chunks: 0,
+        total_chunks: 410,
+        current_size_mb: 0,
+        estimated_total_size_mb: 327,
+        initialization_started: false
+      };
     }
   }
 
@@ -271,13 +291,20 @@ export class CoreAIService {
       // Include auth token if available
       const authToken = authService.getAuthToken();
       
-      // Call REAL AI canister method
-      const result = await this.actor.analyze_social_media({
+      // Call AI canister method
+      const payload: any = {
         url: socialMediaInput.url,
         platform: socialMediaInput.platform,
         frames: socialMediaInput.frames.map(frame => Array.from(frame)),
-        metadata: socialMediaInput.metadata || null
-      });
+        metadata: socialMediaInput.metadata ? [socialMediaInput.metadata] : []
+      };
+      // Debug log to verify final payload (do not stringify)
+      console.dir({ payload }, { depth: null });
+      // Type assertion: ensure platform is a Candid variant object
+      if (typeof payload.platform !== 'object' || payload.platform === null) {
+        throw new Error('Payload platform is not a Candid variant object!');
+      }
+      const result = await this.actor.analyze_social_media(payload);
       
       // Handle canister result (Result<DetectionResult, text>)
       if ('Err' in result) {
@@ -340,17 +367,40 @@ export class CoreAIService {
         // For social media URLs, use real social media analysis
         if (progressCallback) progressCallback(30);
         
+        // Parse platform from URL
+        const urlString = typeof mediaData === 'string' ? mediaData : '';
+        type SocialMediaPlatform =
+          | { YouTube: null }
+          | { Instagram: null }
+          | { TikTok: null }
+          | { Twitter: null }
+          | { Facebook: null }
+          | { Other: string };
+
+        let platformVariant: SocialMediaPlatform;
+        if (urlString.includes('youtube.com') || urlString.includes('youtu.be')) {
+          platformVariant = { YouTube: null };
+        } else if (urlString.includes('instagram.com')) {
+          platformVariant = { Instagram: null };
+        } else if (urlString.includes('tiktok.com')) {
+          platformVariant = { TikTok: null };
+        } else if (urlString.includes('twitter.com') || urlString.includes('x.com')) {
+          platformVariant = { Twitter: null };
+        } else if (urlString.includes('facebook.com')) {
+          platformVariant = { Facebook: null };
+        } else {
+          platformVariant = { Other: 'unknown' };
+        }
         const socialMediaInput = {
           url: mediaData,
-          platform: { Other: 'unknown' },
+          platform: platformVariant,
           frames: [],
-          metadata: JSON.stringify({
-            source: 'social_media',
-            url: mediaData,
-            analyzedAt: new Date().toISOString()
-          })
+          metadata: undefined
         };
-        
+        // Debug log to verify platform variant
+        console.log('platformVariant:', platformVariant);
+        console.log('platformVariant keys:', Object.keys(platformVariant));
+        console.log('platformVariant type:', typeof platformVariant);
         if (progressCallback) progressCallback(70);
         result = await this.analyzeSocialMedia(socialMediaInput);
       } else {
