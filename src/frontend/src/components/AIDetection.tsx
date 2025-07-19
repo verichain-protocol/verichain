@@ -4,20 +4,19 @@
  */
 
 import React, { useState, useCallback, useRef } from 'react';
-import { Upload, AlertTriangle, CheckCircle, Clock, Eye, Camera, Film } from 'lucide-react';
+import { Upload, AlertTriangle, CheckCircle, Eye, Camera, Film, X, Play } from 'lucide-react';
 import { coreAIService } from '../services/coreAI.service';
-import { utilityIntegrationService } from '../services/utilityIntegration.service';
 import { DetectionResult, MediaType, AnalysisState } from '../types/ai.types';
 import { 
   formatConfidence, 
   formatProcessingTime, 
-  getConfidenceColor, 
-  formatFileSize,
-  getDetectionBadgeClass 
+  formatFileSize 
 } from '../utils/uiHelpers';
+import './AIDetection.scss';
 
 interface AIDetectionProps {
   className?: string;
+  onResult?: (result: DetectionResult) => void;
 }
 
 interface AnalysisProgress {
@@ -26,7 +25,7 @@ interface AnalysisProgress {
   message: string;
 }
 
-export const AIDetection: React.FC<AIDetectionProps> = ({ className = '' }) => {
+export const AIDetection: React.FC<AIDetectionProps> = ({ className = '', onResult }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [mediaType, setMediaType] = useState<MediaType>('image');
   const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress>({
@@ -36,555 +35,327 @@ export const AIDetection: React.FC<AIDetectionProps> = ({ className = '' }) => {
   });
   const [result, setResult] = useState<DetectionResult | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Handle file selection
-  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  // Process selected file
+  const processSelectedFile = useCallback((file: File) => {
+    // Reset previous states
+    setError('');
+    setResult(null);
+    setAnalysisProgress({ state: 'idle', progress: 0, message: '' });
 
     // Validate file type
     const isImage = file.type.startsWith('image/');
     const isVideo = file.type.startsWith('video/');
     
     if (!isImage && !isVideo) {
-      setAnalysisProgress({
-        state: 'error',
-        progress: 0,
-        message: 'Please select a valid image or video file'
-      });
+      setError('Please select a valid image or video file');
       return;
     }
 
+    // Validate file size (50MB max)
+    const maxSize = 50 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setError('File size must be less than 50MB');
+      return;
+    }
+
+    // Set file and generate preview
     setSelectedFile(file);
     setMediaType(isImage ? 'image' : 'video');
-    setResult(null);
-    setAnalysisProgress({ state: 'idle', progress: 0, message: '' });
-
+    
     // Create preview URL
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
-
-    return () => URL.revokeObjectURL(url);
   }, []);
+
+  // Handle file selection
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    processSelectedFile(file);
+  }, [processSelectedFile]);
 
   // Handle drag and drop
-  const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
-    const file = event.dataTransfer.files[0];
-    if (file) {
-      // Simulate file input event for drag & drop
-      if (fileInputRef.current) {
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        fileInputRef.current.files = dt.files;
-        
-        const fakeEvent = {
-          target: fileInputRef.current
-        } as React.ChangeEvent<HTMLInputElement>;
-        handleFileSelect(fakeEvent);
-      }
-    }
-  }, [handleFileSelect]);
-
-  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
+    setIsDragOver(true);
   }, []);
 
-  // Start AI analysis
-  const startAnalysis = useCallback(async () => {
-    if (!selectedFile) return;
+  const handleDragLeave = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(false);
+  }, []);
 
-    try {
-      setAnalysisProgress({
-        state: 'uploading',
-        progress: 10,
-        message: 'Preparing file for analysis...'
-      });
-
-      // Validate file with AI canister integration
-      const validationResult = await utilityIntegrationService.validateFile(selectedFile);
-      if (!validationResult.success || !validationResult.data?.isValid) {
-        throw new Error(validationResult.error || 'File validation failed');
-      }
-
-      setAnalysisProgress({
-        state: 'analyzing',
-        progress: 30,
-        message: 'Analyzing with AI model...'
-      });
-
-      // Convert file to Uint8Array for AI canister
-      const arrayBuffer = await selectedFile.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-
-      let analysisResult: DetectionResult;
-
-      if (mediaType === 'image') {
-        analysisResult = await coreAIService.analyzeImage(uint8Array);
-      } else {
-        analysisResult = await coreAIService.analyzeVideo(uint8Array);
-      }
-
-      setAnalysisProgress({
-        state: 'complete',
-        progress: 100,
-        message: 'Analysis complete!'
-      });
-
-      setResult(analysisResult);
-
-    } catch (error) {
-      console.error('Analysis failed:', error);
-      setAnalysisProgress({
-        state: 'error',
-        progress: 0,
-        message: error instanceof Error ? error.message : 'Analysis failed. Please try again.'
-      });
+  const handleDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(false);
+    
+    const file = event.dataTransfer.files[0];
+    if (file) {
+      processSelectedFile(file);
     }
-  }, [selectedFile, mediaType]);
+  }, [processSelectedFile]);
 
-  // Reset the analysis
-  const resetAnalysis = useCallback(() => {
+  // Remove selected file
+  const removeFile = useCallback(() => {
     setSelectedFile(null);
-    setResult(null);
     setPreviewUrl('');
+    setResult(null);
+    setError('');
     setAnalysisProgress({ state: 'idle', progress: 0, message: '' });
+    
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   }, []);
 
-  // Render analysis results
-  const renderResults = () => {
-    try {
-      console.log('🎨 Rendering results...');
-      console.log('📊 Result object:', result);
-      
-      if (!result) {
-        console.log('❌ No result to render');
-        return null;
-      }
+  // Start analysis
+  const startAnalysis = useCallback(async () => {
+    if (!selectedFile) return;
 
-      console.log('🔍 Result properties:', {
-        is_deepfake: result.is_deepfake,
-        confidence: result.confidence,
-        media_type: result.media_type,
-        processing_time_ms: result.processing_time_ms,
-        metadata: result.metadata
+    try {
+      setError('');
+      setResult(null);
+      setAnalysisProgress({
+        state: 'processing',
+        progress: 10,
+        message: 'Preparing file for analysis...'
       });
 
-      const confidence = Number(result.confidence) || 0;
-      const confidenceColor = getConfidenceColor(confidence, result.is_deepfake);
-      console.log('🎨 Confidence color:', confidenceColor);
-      
-      // Safely parse metadata
-      let metadata: any = {};
-      try {
-        metadata = result.metadata ? JSON.parse(result.metadata) : {};
-        console.log('📋 Parsed metadata:', metadata);
-        console.log('🎯 Classification:', metadata.classification);
-        console.log('🎯 Classes:', metadata.classes);
-      } catch (error) {
-        console.warn('Failed to parse metadata:', error);
-        console.log('Raw metadata string:', result.metadata);
-        metadata = {};
+      // Convert file to array buffer
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      setAnalysisProgress({
+        state: 'processing',
+        progress: 30,
+        message: 'Uploading to AI canister...'
+      });
+
+      // Call AI service with real implementation
+      let detectionResult: DetectionResult;
+      if (mediaType === 'image') {
+        detectionResult = await coreAIService.analyzeImage(uint8Array);
+      } else {
+        detectionResult = await coreAIService.analyzeVideo(uint8Array);
       }
 
-      // Get classification info - prioritize metadata classification
-      const classification = metadata.classification || 'Real'; // Default to Real if no metadata
-      const classConfidence = metadata.class_confidence || confidence;
-      const classes = metadata.classes || {
-        real_probability: 0.33,
-        ai_generated_probability: 0.33,
-        deepfake_probability: 0.34
-      };
-      
-      console.log('🏷️ Final classification:', classification);
-      console.log('📊 Final classes:', classes);
+      setAnalysisProgress({
+        state: 'complete',
+        progress: 100,
+        message: 'Analysis completed!'
+      });
 
-    return (
-      <div className="mt-6 p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
-        <div className="flex items-center space-x-3 mb-6">
-          {classification === 'Real' ? (
-            <CheckCircle className="w-8 h-8 text-green-500" />
-          ) : classification === 'Deepfake' ? (
-            <AlertTriangle className="w-8 h-8 text-red-500" />
-          ) : classification === 'AI-Generated' ? (
-            <AlertTriangle className="w-8 h-8 text-orange-500" />
-          ) : (
-            <AlertTriangle className="w-8 h-8 text-gray-500" />
-          )}
-          <div>
-            <h3 className="text-xl font-bold">
-              {classification === 'Real' ? '✅ Real Content' : 
-               classification === 'Deepfake' ? '🚨 Deepfake Detected' : 
-               classification === 'AI-Generated' ? '⚠️ AI-Generated Content' :
-               '❓ Classification Uncertain'}
-            </h3>
-            <p className="text-gray-600 text-sm">
-              {classification === 'Real' ? 'This appears to be genuine, unaltered media' : 
-               classification === 'Deepfake' ? 'This content shows signs of deepfake manipulation' : 
-               classification === 'AI-Generated' ? 'This content appears to be AI-generated' :
-               'Unable to determine content authenticity'}
-            </p>
-          </div>
-        </div>
+      setResult(detectionResult);
+      if (onResult) {
+        onResult(detectionResult);
+      }
 
-        {/* 3-Class Classification Results */}
-        <div className="mb-6">
-          <h4 className="text-lg font-semibold mb-3 text-gray-800">Classification Results</h4>
-          <div className="space-y-3">
-            {/* Real Probability */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="font-medium">Real Content</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-32 bg-gray-200 rounded-full h-2">
-                  <div
-                    className="h-2 bg-green-500 rounded-full transition-all duration-500"
-                    style={{ width: `${(classes.real_probability || 0) * 100}%` }}
-                  />
-                </div>
-                <span className="text-sm font-medium min-w-[3rem]">
-                  {((classes.real_probability || 0) * 100).toFixed(1)}%
-                </span>
-              </div>
-            </div>
-
-            {/* AI Generated Probability */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                <span className="font-medium">AI-Generated</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-32 bg-gray-200 rounded-full h-2">
-                  <div
-                    className="h-2 bg-orange-500 rounded-full transition-all duration-500"
-                    style={{ width: `${(classes.ai_generated_probability || 0) * 100}%` }}
-                  />
-                </div>
-                <span className="text-sm font-medium min-w-[3rem]">
-                  {((classes.ai_generated_probability || 0) * 100).toFixed(1)}%
-                </span>
-              </div>
-            </div>
-
-            {/* Deepfake Probability */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                <span className="font-medium">Deepfake</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-32 bg-gray-200 rounded-full h-2">
-                  <div
-                    className="h-2 bg-red-500 rounded-full transition-all duration-500"
-                    style={{ width: `${(classes.deepfake_probability || 0) * 100}%` }}
-                  />
-                </div>
-                <span className="text-sm font-medium min-w-[3rem]">
-                  {((classes.deepfake_probability || 0) * 100).toFixed(1)}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Primary Classification:</span>
-              <span className="font-semibold text-gray-900">
-                {classification}
-              </span>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Confidence:</span>
-              <span 
-                className="font-semibold"
-                style={{ color: confidenceColor }}
-              >
-                {formatConfidence(classConfidence)}
-              </span>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Processing Time:</span>
-              <span className="font-medium">
-                {formatProcessingTime(Number(result.processing_time_ms) || 0)}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Media Type:</span>
-              <span className="font-medium capitalize">
-                {(result.media_type || 'Unknown').toString().toLowerCase()}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {metadata.detection_method && (
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Detection Method:</span>
-                <span className="font-medium text-sm">
-                  {metadata.detection_method}
-                </span>
-              </div>
-            )}
-
-            {metadata.deepfake_percentage && (
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Deepfake Frames:</span>
-                <span className="font-medium">
-                  {metadata.deepfake_percentage.toFixed(1)}%
-                </span>
-              </div>
-            )}
-
-            {metadata.file_size_mb && (
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">File Size:</span>
-                <span className="font-medium">
-                  {metadata.file_size_mb.toFixed(2)} MB
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Confidence Bar */}
-        <div className="mb-4">
-          <div className="flex justify-between text-sm text-gray-600 mb-1">
-            <span>Confidence Level</span>
-            <span>{formatConfidence(confidence)}</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="h-2 rounded-full transition-all duration-500"
-              style={{ 
-                width: `${confidence * 100}%`,
-                backgroundColor: confidenceColor
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Technical Details */}
-        {metadata && (
-          <details className="mt-4">
-            <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
-              Technical Details
-            </summary>
-            <div className="mt-2 p-3 bg-gray-50 rounded text-sm">
-              <pre className="whitespace-pre-wrap text-gray-600">
-                {JSON.stringify(metadata, null, 2)}
-              </pre>
-            </div>
-          </details>
-        )}
-      </div>
-    );
-    } catch (error) {
-      console.error('Error rendering results:', error);
-      return (
-        <div className="mt-6 p-6 bg-red-50 rounded-lg border border-red-200">
-          <div className="flex items-center space-x-3">
-            <AlertTriangle className="w-6 h-6 text-red-500" />
-            <div>
-              <h3 className="text-lg font-semibold text-red-800">Error Displaying Results</h3>
-              <p className="text-red-600">There was an error displaying the analysis results. Please try again.</p>
-            </div>
-          </div>
-        </div>
-      );
+    } catch (err) {
+      console.error('Analysis failed:', err);
+      setError(`Analysis failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setAnalysisProgress({
+        state: 'error',
+        progress: 0,
+        message: 'Analysis failed'
+      });
     }
-  };
+  }, [selectedFile, mediaType, onResult]);
+
+  // Browse files
+  const browseFiles = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
 
   return (
-    <div className={`max-w-4xl mx-auto p-6 ${className}`}>
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Eye className="w-6 h-6 text-blue-600" />
+    <div className={`ai-detection ${className}`}>
+      <div className="detection-container">
+        
+        {/* Upload Section */}
+        <div className="upload-section">
+          <div 
+            className={`upload-area ${isDragOver ? 'drag-over' : ''}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={browseFiles}
+          >
+            <div className="upload-icon">
+              <Upload size={32} />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                VeriChain AI Detection
-              </h1>
-              <p className="text-gray-600">
-                Advanced deepfake detection using blockchain-powered AI
+            
+            <div className="upload-text">
+              <h3>Upload Media for Analysis</h3>
+              <p>
+                Drag and drop your image or video here, or click to browse files.
+                Our AI will analyze the content for deepfake manipulation.
               </p>
+              
+              <div className="supported-formats">
+                <span className="format-tag">JPG</span>
+                <span className="format-tag">PNG</span>
+                <span className="format-tag">MP4</span>
+                <span className="format-tag">WEBM</span>
+                <span className="format-tag">MOV</span>
+              </div>
             </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="file-input"
+              accept="image/*,video/*"
+              onChange={handleFileSelect}
+            />
           </div>
+
+          <button className="browse-button" onClick={browseFiles}>
+            Browse Files
+          </button>
         </div>
 
-        {/* File Upload Area */}
-        <div className="p-6">
-          {!selectedFile && (
-            <div
-              className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer"
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <div className="flex flex-col items-center space-y-4">
-                <div className="p-3 bg-gray-100 rounded-full">
-                  <Upload className="w-8 h-8 text-gray-600" />
+        {/* File Preview */}
+        {selectedFile && (
+          <div className="file-preview">
+            <div className="preview-header">
+              <div className="file-info">
+                <div className="file-icon">
+                  {mediaType === 'image' ? <Camera size={20} /> : <Film size={20} />}
                 </div>
-                <div>
-                  <p className="text-lg font-medium text-gray-900">
-                    Upload Image or Video
-                  </p>
-                  <p className="text-gray-600">
-                    Drag and drop your file here, or click to browse
-                  </p>
+                <div className="file-details">
+                  <h4>{selectedFile.name}</h4>
+                  <p>{formatFileSize(selectedFile.size)} • {mediaType.toUpperCase()}</p>
                 </div>
-                <div className="flex items-center space-x-6 text-sm text-gray-500">
-                  <div className="flex items-center space-x-1">
-                    <Camera className="w-4 h-4" />
-                    <span>JPG, PNG</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Film className="w-4 h-4" />
-                    <span>MP4, MOV</span>
-                  </div>
-                </div>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,video/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-            </div>
-          )}
-
-          {/* File Preview */}
-          {selectedFile && previewUrl && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg ${mediaType === 'image' ? 'bg-green-100' : 'bg-blue-100'}`}>
-                    {mediaType === 'image' ? (
-                      <Camera className="w-5 h-5 text-green-600" />
-                    ) : (
-                      <Film className="w-5 h-5 text-blue-600" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{selectedFile.name}</p>
-                    <p className="text-sm text-gray-600">
-                      {formatFileSize(selectedFile.size)} • {mediaType.toUpperCase()}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={resetAnalysis}
-                  className="text-sm text-gray-500 hover:text-gray-700"
-                >
-                  Remove
-                </button>
-              </div>
-
-              {/* Media Preview */}
-              <div className="relative max-w-md mx-auto">
-                {mediaType === 'image' ? (
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="w-full rounded-lg shadow-md"
-                  />
-                ) : (
-                  <video
-                    src={previewUrl}
-                    controls
-                    className="w-full rounded-lg shadow-md"
-                  />
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Analysis Progress */}
-          {selectedFile && analysisProgress.state !== 'idle' && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-3 mb-3">
-                {analysisProgress.state === 'error' ? (
-                  <AlertTriangle className="w-5 h-5 text-red-500" />
-                ) : analysisProgress.state === 'complete' ? (
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                ) : (
-                  <Clock className="w-5 h-5 text-blue-500 animate-spin" />
-                )}
-                <span className="font-medium text-gray-900">
-                  {analysisProgress.message}
-                </span>
               </div>
               
-              {analysisProgress.state !== 'error' && analysisProgress.state !== 'complete' && (
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              <button className="remove-button" onClick={removeFile}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="preview-content">
+              <div className="media-preview">
+                {mediaType === 'image' ? (
+                  <img src={previewUrl} alt="Preview" />
+                ) : (
+                  <video src={previewUrl} controls />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="error-message">
+            <AlertTriangle className="error-icon" size={20} />
+            <span className="error-text">{error}</span>
+          </div>
+        )}
+
+        {/* Analysis Section */}
+        {selectedFile && (
+          <div className="analysis-section">
+            {analysisProgress.state !== 'idle' && analysisProgress.state !== 'error' && (
+              <div className="analysis-progress">
+                <div className="progress-header">
+                  <div className="progress-icon">
+                    <Eye size={20} />
+                  </div>
+                  <div className="progress-text">
+                    <h4>AI Analysis in Progress</h4>
+                    <p>{analysisProgress.message}</p>
+                  </div>
+                </div>
+                
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill"
                     style={{ width: `${analysisProgress.progress}%` }}
                   />
                 </div>
-              )}
-            </div>
-          )}
+                
+                <div className="progress-percentage">
+                  {Math.round(analysisProgress.progress)}%
+                </div>
+              </div>
+            )}
 
-          {/* Action Buttons */}
-          {selectedFile && analysisProgress.state === 'idle' && (
-            <div className="mt-6 flex justify-center">
-              <button
+            {analysisProgress.state === 'idle' && (
+              <button 
+                className="analyze-button"
                 onClick={startAnalysis}
-                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                disabled={!selectedFile}
               >
-                <Eye className="w-5 h-5" />
-                <span>Analyze for Deepfakes</span>
+                <Play size={20} />
+                Start AI Analysis
               </button>
-            </div>
-          )}
-
-          {analysisProgress.state === 'complete' && (
-            <div className="mt-6 flex justify-center space-x-4">
-              <button
-                onClick={resetAnalysis}
-                className="px-6 py-3 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Analyze New File
-              </button>
-            </div>
-          )}
-
-          {analysisProgress.state === 'error' && (
-            <div className="mt-6 flex justify-center space-x-4">
-              <button
-                onClick={startAnalysis}
-                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Try Again
-              </button>
-              <button
-                onClick={resetAnalysis}
-                className="px-6 py-3 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Select New File
-              </button>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Results Section */}
-        {renderResults()}
+        {result && (
+          <div className="results-section">
+            <div className={`result-card ${result.is_deepfake ? 'deepfake' : 'authentic'}`}>
+              <div className="result-header">
+                <div className={`result-icon ${result.is_deepfake ? 'deepfake' : 'authentic'}`}>
+                  {result.is_deepfake ? (
+                    <AlertTriangle size={28} />
+                  ) : (
+                    <CheckCircle size={28} />
+                  )}
+                </div>
+                
+                <div className="result-summary">
+                  <h3 className={result.is_deepfake ? 'deepfake' : 'authentic'}>
+                    {result.is_deepfake ? 'Deepfake Detected' : 'Content Authentic'}
+                  </h3>
+                  <div className="confidence-score">
+                    Confidence: {formatConfidence(result.confidence)}
+                  </div>
+                </div>
+                
+                <div className={`result-badge ${result.is_deepfake ? 'deepfake' : 'authentic'}`}>
+                  {result.is_deepfake ? 'Manipulated' : 'Original'}
+                </div>
+              </div>
+
+              <div className="result-details">
+                <div className="detail-item">
+                  <div className="detail-value">{formatConfidence(result.confidence)}</div>
+                  <div className="detail-label">Confidence</div>
+                </div>
+                
+                <div className="detail-item">
+                  <div className="detail-value">{formatProcessingTime(result.processing_time_ms)}</div>
+                  <div className="detail-label">Processing Time</div>
+                </div>
+                
+                <div className="detail-item">
+                  <div className="detail-value">{result.media_type.toUpperCase()}</div>
+                  <div className="detail-label">Media Type</div>
+                </div>
+                
+                <div className="detail-item">
+                  <div className="detail-value">{result.model_version}</div>
+                  <div className="detail-label">Model Version</div>
+                </div>
+              </div>
+
+              <div className="confidence-bar">
+                <div 
+                  className={`confidence-fill ${result.is_deepfake ? 'deepfake' : 'authentic'}`}
+                  style={{ width: `${result.confidence * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
