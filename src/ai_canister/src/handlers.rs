@@ -23,9 +23,12 @@ pub async fn analyze_image(data: Vec<u8>) -> Result<DetectionResult, String> {
         return Err(format!("Image size exceeds {}MB limit", MAX_FILE_SIZE_IMAGE_MB));
     }
     
-    // Process with model
+    // Process with model - safer error handling
     let result = state::with_detector_mut(|detector| {
-        detector.analyze_image(&data, None)
+        match detector.analyze_image(&data, None) {
+            Ok(detection_result) => Ok(detection_result),
+            Err(e) => Err(format!("Detection error: {}", e))
+        }
     });
     
     match result {
@@ -56,9 +59,12 @@ pub async fn analyze_video(data: Vec<u8>) -> Result<DetectionResult, String> {
         return Err(format!("Video size exceeds {}MB limit", MAX_FILE_SIZE_VIDEO_MB));
     }
     
-    // Process with model
+    // Process with model - safer error handling
     let result = state::with_detector_mut(|detector| {
-        detector.analyze_video(&data)
+        match detector.analyze_video(&data) {
+            Ok(detection_result) => Ok(detection_result),
+            Err(e) => Err(format!("Detection error: {}", e))
+        }
     });
     
     match result {

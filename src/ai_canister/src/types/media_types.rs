@@ -63,8 +63,8 @@ pub enum MediaType {
 
 /// Constants for media processing
 pub const MODEL_INPUT_SIZE: (u32, u32) = (224, 224);
-pub const MAX_FILE_SIZE_IMAGE_MB: u32 = 10;
-pub const MAX_FILE_SIZE_VIDEO_MB: u32 = 100;
+pub const MAX_FILE_SIZE_IMAGE_MB: u32 = 2;  // Reduced to 2MB for canister payload limit
+pub const MAX_FILE_SIZE_VIDEO_MB: u32 = 2;  // Reduced to 2MB for canister payload limit
 pub const SUPPORTED_IMAGE_FORMATS: &[&str] = &["jpg", "jpeg", "png"];
 pub const SUPPORTED_VIDEO_FORMATS: &[&str] = &["mp4", "mov"];
 pub const MODEL_CONFIDENCE_THRESHOLD: f32 = 0.5;
