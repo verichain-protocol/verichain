@@ -1,6 +1,9 @@
 /// VeriChain AI Types
 /// TypeScript definitions for AI detection and analysis
 
+export type MediaType = 'image' | 'video';
+export type AnalysisState = 'idle' | 'uploading' | 'processing' | 'analyzing' | 'complete' | 'error';
+
 export interface DetectionResult {
   is_deepfake: boolean;
   confidence: number;
@@ -121,6 +124,3 @@ export const USER_TIERS: Record<string, UserTier> = {
     priority_processing: true
   }
 };
-
-export type MediaType = 'image' | 'video';
-export type AnalysisState = 'idle' | 'uploading' | 'analyzing' | 'complete' | 'error';
