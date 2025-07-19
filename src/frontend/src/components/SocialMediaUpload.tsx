@@ -1,9 +1,10 @@
 /**
  * VeriChain Social Media Upload Component
- * REAL IMPLEMENTATION with AI Canister Integration
+ * Implementation with AI Canister Integration
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg';
 import { Link, Play, AlertTriangle, CheckCircle, ExternalLink, Globe, Clock, Download } from 'lucide-react';
 import { coreAIService } from '../services/coreAI.service';
 import { validateSocialMediaUrl, getSupportedPlatforms } from '../utils/socialMediaParser';
@@ -56,6 +57,30 @@ export const SocialMediaUpload: React.FC<SocialMediaUploadProps> = ({
     { id: 'complete', name: 'Generating report', status: 'pending' }
   ]);
 
+  // ffmpeg state/hooks
+  const [file, setFile] = useState<File | null>(null);
+  const [ffmpegReady, setFfmpegReady] = useState(false);
+  const ffmpeg = useRef<any>(null);
+
+  // Load ffmpeg.wasm
+  useEffect(() => {
+    const load = async () => {
+      if (!ffmpeg.current) {
+        ffmpeg.current = createFFmpeg({ log: true });
+        await ffmpeg.current.load();
+        setFfmpegReady(true);
+      }
+    };
+    load();
+  }, []);
+
+  // Handle file input
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
   /**
    * Handle URL input change with real-time validation
    */
@@ -89,8 +114,8 @@ export const SocialMediaUpload: React.FC<SocialMediaUploadProps> = ({
    * REAL IMPLEMENTATION: Start social media analysis using AI canister
    */
   const startAnalysis = useCallback(async () => {
-    if (!state.url.trim()) {
-      setState(prev => ({ ...prev, error: 'Please enter a valid URL' }));
+    if (!state.url.trim() && !file) {
+      setState(prev => ({ ...prev, error: 'Please enter a valid URL or upload a file' }));
       return;
     }
 
@@ -133,22 +158,63 @@ export const SocialMediaUpload: React.FC<SocialMediaUploadProps> = ({
         progressMessage: `Fetching content from ${validation.platform}...`
       }));
 
-      // Create SocialMediaInput for AI canister
+      let platformVariant: any;
+      if (validation.platform === 'youtube') {
+        platformVariant = { YouTube: null };
+      } else if (validation.platform === 'instagram') {
+        platformVariant = { Instagram: null };
+      } else if (validation.platform === 'tiktok') {
+        platformVariant = { TikTok: null };
+      } else if (validation.platform === 'twitter') {
+        platformVariant = { Twitter: null };
+      } else if (validation.platform === 'facebook') {
+        platformVariant = { Facebook: null };
+      } else {
+        platformVariant = { Other: validation.platform };
+      }
+
+      let frames: Uint8Array[] = [];
+      if (file && ffmpegReady) {
+        // Extract frames from uploaded video using ffmpeg.wasm
+        const fileName = file.name;
+        await ffmpeg.current.FS('writeFile', fileName, await fetchFile(file));
+        await ffmpeg.current.run('-i', fileName, '-vf', 'fps=1', 'frame_%03d.jpg');
+        const files = ffmpeg.current.FS('readdir', '/').filter((f: string) => f.startsWith('frame_') && f.endsWith('.jpg'));
+        for (const f of files) {
+          const data = ffmpeg.current.FS('readFile', f);
+          frames.push(new Uint8Array(data));
+        }
+        // Bersihkan file di FS
+        ffmpeg.current.FS('unlink', fileName);
+        for (const f of files) ffmpeg.current.FS('unlink', f);
+      } else {
+        setState(prev => ({ ...prev, error: 'Please upload a video file for analysis.' }));
+        return;
+      }
+
       const socialMediaInput = {
         url: state.url,
-        platform: validation.platform === 'youtube' ? { YouTube: null } :
-                 validation.platform === 'instagram' ? { Instagram: null } :
-                 validation.platform === 'tiktok' ? { TikTok: null } :
-                 validation.platform === 'twitter' ? { Twitter: null } :
-                 validation.platform === 'facebook' ? { Facebook: null } :
-                 { Other: validation.platform },
-        frames: [], // Will be populated by the canister
-        metadata: JSON.stringify({
-          originalUrl: state.url,
-          platform: validation.platform,
-          extractedAt: new Date().toISOString()
-        })
+        platform: platformVariant,
+        frames,
+        // metadata is optional and omitted to avoid Candid parsing issues
       };
+  // UI: file upload
+  // Only show if ffmpeg is ready
+  const renderFileInput = () => (
+    <div className="file-upload-section">
+      <label htmlFor="file-upload">Upload Video File:</label>
+      <input
+        id="file-upload"
+        type="file"
+        accept="video/*"
+        onChange={handleFileChange}
+        disabled={!ffmpegReady || state.isAnalyzing}
+      />
+      {!ffmpegReady && <span>Loading video processor...</span>}
+      {file && <span>Selected: {file.name}</span>}
+    </div>
+  );
+        {renderFileInput()}
 
       updateStepStatus('fetch', 'completed');
       updateStepStatus('extract', 'active');
