@@ -1,196 +1,233 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { AIDetection } from './components/AIDetection';
-import { ModelStatus } from './components/ModelStatus';
-import { coreAIService } from './services/coreAI.service';
-import { modelManagementService } from './services/modelManagement.service';
-import { utilityIntegrationService } from './services/utilityIntegration.service';
-import { DetectionResult, ModelInfo } from './types/ai.types';
+/**
+ * VeriChain App - AI Detection Platform
+ * Main application with tabbed interface for AI analysis
+ */
+
+import React, { useState, useEffect } from 'react';
+import { 
+  Shield, 
+  Upload, 
+  Link, 
+  BarChart3, 
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  Zap,
+  Eye,
+  Globe
+} from 'lucide-react';
 import './App.scss';
 
+// Import components
+import { ModelStatus } from './components/ModelStatus';
+import { AIDetection } from './components/AIDetection';
+import { SocialMediaUpload } from './components/SocialMediaUpload';
+import Analytics from './components/Analytics';
+import { DetectionResult } from './types/ai.types';
+
+type ActivePage = 'upload' | 'social' | 'analytics';
+
+interface AppState {
+  activePage: ActivePage;
+  detectionResults: DetectionResult[];
+  error: string | null;
+  isLoading: boolean;
+}
+
 const App: React.FC = () => {
-  const [lastResult, setLastResult] = useState<DetectionResult | null>(null);
-  const [performanceData, setPerformanceData] = useState<any>(null);
-  const [modelStatus, setModelStatus] = useState<ModelInfo | null>(null);
-  const [isModelInitializing, setIsModelInitializing] = useState(false);
+  const [state, setState] = useState<AppState>({
+    activePage: 'upload',
+    detectionResults: [],
+    error: null,
+    isLoading: false
+  });
 
-  /**
-   * Initialize model on app start
-   */
-  useEffect(() => {
-    const initializeModel = async () => {
-      setIsModelInitializing(true);
-      try {
-        console.log('🚀 Initializing AI model...');
-        const isReady = await modelManagementService.initializeModel();
-        if (isReady) {
-          console.log('✅ Model ready');
-          const status = await modelManagementService.getModelStatus();
-          setModelStatus(status);
-        } else {
-          console.log('❌ Model initialization failed');
-        }
-      } catch (error) {
-        console.error('❌ Model initialization error:', error);
-      } finally {
-        setIsModelInitializing(false);
-      }
-    };
+  // Navigation handler
+  const setActivePage = (page: ActivePage) => {
+    setState(prev => ({ ...prev, activePage: page }));
+  };
 
-    initializeModel();
+  // Handle detection results from components
+  const handleDetectionResult = (result: DetectionResult) => {
+    setState(prev => ({
+      ...prev,
+      detectionResults: [result, ...prev.detectionResults.slice(0, 9)]
+    }));
+  };
 
-    // Start status monitoring
-    modelManagementService.startStatusMonitoring((status) => {
-      setModelStatus(status);
-    });
-
-    return () => {
-      modelManagementService.stopStatusMonitoring();
-    };
-  }, []);
-
-  /**
-   * Handle detection result and track performance
-   */
-  const handleDetectionResult = useCallback(async (result: DetectionResult) => {
-    console.log('🎯 Detection result received:', result);
-    setLastResult(result);
-    
-    // Get performance metrics from the last operation
-    const metrics = utilityIntegrationService.getLastPerformanceMetrics();
-    setPerformanceData(metrics);
-    console.log('📊 Performance metrics:', metrics);
-  }, []);
-
-  /**
-   * Test AI canister integration
-   */
-  const testCanisterIntegration = useCallback(async () => {
-    console.log('🧪 Testing AI canister integration...');
-    
-    try {
-      // Test model status
-      const modelInfo = await coreAIService.getModelInfo();
-      console.log('🤖 Model info:', modelInfo);
-      
-      // Test URL validation with utility integration
-      const urlTest = await utilityIntegrationService.validateSocialMediaUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-      console.log('🔗 URL validation test:', urlTest);
-      
-      // Test file validation with real file
-      const canvas = document.createElement('canvas');
-      canvas.width = 224;
-      canvas.height = 224;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.fillStyle = '#ff0000';
-        ctx.fillRect(0, 0, 224, 224);
-      }
-      
-      canvas.toBlob(async (blob) => {
-        if (blob) {
-          const testFile = new File([blob], 'test.png', { type: 'image/png' });
-          
-          // Test file validation with AI canister
-          const fileTest = await utilityIntegrationService.validateFile(testFile);
-          console.log('📁 File validation test:', fileTest);
-          
-          // Test file hashing
-          const hashTest = await utilityIntegrationService.hashFile(testFile);
-          console.log('🔐 File hash test:', hashTest);
-          
-          // Test dimensions validation with AI canister
-          const dimensionsTest = await utilityIntegrationService.validateMediaDimensions(224, 224);
-          console.log('📐 Dimensions validation test:', dimensionsTest);
-        }
-      }, 'image/png');
-      
-      // Test file format validation with AI canister
-      const formatTest = await coreAIService.validateFileFormat('test.jpg');
-      console.log('📋 Format validation test:', formatTest);
-      
-    } catch (error) {
-      console.error('❌ Canister integration test failed:', error);
-    }
-  }, []);
+  // Clear error handler
+  const clearError = () => {
+    setState(prev => ({ ...prev, error: null }));
+  };
 
   return (
-    <div className="app">
+    <div className="verichain-app">
+      {/* Header */}
       <header className="app-header">
-        <div className="container">
-          <h1 className="app-title">
-            <span className="veri">Veri</span>
-            <span className="chain">Chain</span>
-          </h1>
-          <p className="app-subtitle">
-            Professional Deepfake Detection Platform
-          </p>
-          <ModelStatus className="model-status-header" />
+        <div className="header-content">
+          <div className="logo-section">
+            <div className="logo-icon-wrapper">
+              <Shield className="logo-icon" size={32} />
+              <div className="logo-pulse"></div>
+            </div>
+            <div className="logo-text">
+              <h1>
+                <span className="veri">Veri</span>
+                <span className="chain">Chain</span>
+              </h1>
+              <p>AI Detection Platform</p>
+            </div>
+          </div>
+          
+          <div className="header-actions">
+            <ModelStatus className="header-model-status" />
+          </div>
         </div>
       </header>
 
-      <main className="app-main">
-        <div className="container">
-          <AIDetection 
-            className="ai-detection-section"
-          />
-
-          {/* Development: AI Canister Integration Test */}
-          <div className="utility-test-section">
-            <h3>AI Canister Integration Test</h3>
-            <div className="test-controls">
-              <button 
-                onClick={testCanisterIntegration}
-                className="test-button"
-                disabled={isModelInitializing}
-              >
-                {isModelInitializing ? 'Initializing Model...' : 'Test AI Integration'}
-              </button>
-              
-              {modelStatus && (
-                <div className="model-info">
-                  <span className={`status-badge ${modelStatus.status}`}>
-                    {modelStatus.status}
-                  </span>
-                  <span className="accuracy">
-                    {modelStatus.accuracy}% accuracy
-                  </span>
-                  <span className="chunks">
-                    {modelStatus.chunks_loaded}/{modelStatus.total_chunks} chunks
-                  </span>
-                </div>
-              )}
-            </div>
-            
-            {performanceData && (
-              <div className="performance-display">
-                <h4>Performance Metrics</h4>
-                <pre>{JSON.stringify(performanceData, null, 2)}</pre>
+      {/* Navigation */}
+      <nav className="app-navigation">
+        <div className="nav-container">
+          <div className="nav-tabs">
+            <button 
+              className={`nav-tab ${state.activePage === 'upload' ? 'active' : ''}`}
+              onClick={() => setActivePage('upload')}
+            >
+              <div className="tab-icon">
+                <Upload size={20} />
               </div>
-            )}
-          </div>
+              <div className="tab-content">
+                <span className="tab-title">Media Upload</span>
+                <span className="tab-subtitle">Upload & Analyze</span>
+              </div>
+              <div className="tab-indicator"></div>
+            </button>
 
-          {lastResult && (
-            <div className="last-result-display">
-              <h3>Last Detection Result</h3>
-              <div className="result-summary">
-                <span className={`result-badge ${lastResult.is_deepfake ? 'deepfake' : 'real'}`}>
-                  {lastResult.is_deepfake ? 'Deepfake Detected' : 'Real Content'}
-                </span>
-                <span className="confidence">
-                  {(lastResult.confidence * 100).toFixed(1)}% confidence
-                </span>
-                <span className="processing-time">
-                  {lastResult.processing_time_ms}ms
-                </span>
+            <button 
+              className={`nav-tab ${state.activePage === 'social' ? 'active' : ''}`}
+              onClick={() => setActivePage('social')}
+            >
+              <div className="tab-icon">
+                <Globe size={20} />
+              </div>
+              <div className="tab-content">
+                <span className="tab-title">Social Media</span>
+                <span className="tab-subtitle">URL Analysis</span>
+              </div>
+              <div className="tab-indicator"></div>
+            </button>
+
+            <button 
+              className={`nav-tab ${state.activePage === 'analytics' ? 'active' : ''}`}
+              onClick={() => setActivePage('analytics')}
+            >
+              <div className="tab-icon">
+                <BarChart3 size={20} />
+              </div>
+              <div className="tab-content">
+                <span className="tab-title">Analytics</span>
+                <span className="tab-subtitle">Detection History</span>
+              </div>
+              <div className="tab-indicator"></div>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Dynamic Page Content */}
+      <main className="app-main">
+        <div className="content-container">
+          {/* Error Display */}
+          {state.error && (
+            <div className="error-banner">
+              <div className="error-content">
+                <AlertTriangle size={24} />
+                <div className="error-text">
+                  <h4>Detection Error</h4>
+                  <p>{state.error}</p>
+                </div>
+                <button className="error-close" onClick={clearError}>×</button>
+              </div>
+            </div>
+          )}
+
+          {/* Upload Page */}
+          {state.activePage === 'upload' && (
+            <div className="page-content upload-page">
+              <div className="page-hero">
+                <div className="hero-icon">
+                  <Upload size={48} />
+                  <div className="hero-glow"></div>
+                </div>
+                <h1>Advanced Media Detection</h1>
+                <p>Upload images or videos to detect deepfake manipulation with our cutting-edge AI technology</p>
+              </div>
+              
+              <div className="page-main-content">
+                <AIDetection 
+                  className="enhanced-detection"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Social Media Page */}
+          {state.activePage === 'social' && (
+            <div className="page-content social-page">
+              <div className="page-hero">
+                <div className="hero-icon">
+                  <Globe size={48} />
+                  <div className="hero-glow social-glow"></div>
+                </div>
+                <h1>Social Media Analysis</h1>
+                <p>Analyze content from social media platforms with direct URL scanning</p>
+              </div>
+              
+              <div className="page-main-content">
+                <SocialMediaUpload 
+                  className="enhanced-social"
+                  onResult={handleDetectionResult}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Analytics Page */}
+          {state.activePage === 'analytics' && (
+            <div className="page-content analytics-page">
+              <div className="page-hero">
+                <div className="hero-icon">
+                  <BarChart3 size={48} />
+                  <div className="hero-glow analytics-glow"></div>
+                </div>
+                <h1>Detection Analytics</h1>
+                <p>Track your deepfake detection patterns and model performance</p>
+              </div>
+              
+              <div className="page-main-content">
+                <Analytics />
               </div>
             </div>
           )}
         </div>
       </main>
 
+      {/* Ultra Modern Footer */}
       <footer className="app-footer">
-        <div className="container">
-          <p>&copy; 2025 VeriChain Protocol. Professional deepfake detection.</p>
+        <div className="footer-content">
+          <div className="footer-brand">
+            <Shield size={20} />
+            <span>VeriChain Protocol</span>
+          </div>
+          <div className="footer-links">
+            <a href="#privacy">Privacy</a>
+            <a href="#terms">Terms</a>
+            <a href="#api">API</a>
+            <a href="#support">Support</a>
+          </div>
+          <div className="footer-stats">
+            <span>BCC NonceSense • 2025</span>
+          </div>
         </div>
       </footer>
     </div>
