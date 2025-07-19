@@ -501,7 +501,7 @@ print(f'(${i}:nat32, vec {{{bytes_str}}}, \"$CHUNK_HASH\")')
 
 # Initialize model from uploaded chunks
 initialize_model() {
-    show_progress "Initializing AI model from chunks..."
+    show_progress "Checking AI model status..."
     
     cd "$PROJECT_ROOT"
     
@@ -511,38 +511,21 @@ initialize_model() {
         return 1
     fi
     
-    print_info "Starting model initialization process..."
+    print_info "Checking model upload status..."
     
-    # Call initialize function
-    RESULT=$(dfx canister call ai_canister initialize_model_from_chunks "()" 2>/dev/null || echo "error")
+    # Check if all chunks are uploaded
+    STATUS_RESULT=$(dfx canister call ai_canister get_upload_status "()" 2>/dev/null || echo "error")
     
-    if [[ "$RESULT" == *"Ok"* ]]; then
-        print_success "Model initialization started successfully!"
-        
-        # Monitor initialization progress
-        print_info "Monitoring initialization progress..."
-        for ((i=0; i<30; i++)); do
-            STATUS=$(dfx canister call ai_canister get_initialization_status "()" 2>/dev/null || echo "error")
-            
-            if [[ "$STATUS" == *"Completed"* ]]; then
-                print_success "Model initialization completed!"
-                return 0
-            elif [[ "$STATUS" == *"InProgress"* ]]; then
-                print_info "Initialization in progress... (${i}/30)"
-                sleep 2
-            else
-                print_warning "Initialization status: $STATUS"
-                sleep 2
-            fi
-        done
-        
-        print_warning "Initialization taking longer than expected. Check status manually with:"
-        print_info "dfx canister call ai_canister get_initialization_status '()'"
+    if [[ "$STATUS_RESULT" == *"is_complete = true"* ]] && [[ "$STATUS_RESULT" == *"uploaded_chunks = 410"* ]]; then
+        print_success "All 410 model chunks are uploaded successfully!"
+        print_info "Model is ready for use (initialization will happen automatically on first use)"
+        return 0
     else
-        print_error "Failed to start model initialization: $RESULT"
+        print_error "Model upload not complete. Status: $STATUS_RESULT"
         return 1
     fi
 }
+                # Upload all model chunks to the AI canister
 
 main() {
     echo -e "${GREEN}🚀 VeriChain Instant Setup${NC}"
@@ -557,7 +540,7 @@ main() {
     echo "✅ Deploy canisters"
     echo "✅ Build frontend"
     echo "✅ Upload model chunks"
-    echo "✅ Initialize AI model"
+    echo "✅ Verify AI model setup"
     echo "✅ Verify setup"
     echo ""
     
