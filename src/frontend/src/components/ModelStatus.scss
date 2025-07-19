@@ -1,0 +1,303 @@
+// VeriChain Model Status Component Styles
+// Real-time AI model status with detailed hover modal
+
+.model-status {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      
+      &.active {
+        background: #22c55e;
+        box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+      }
+      
+      &.loading {
+        background: #f59e0b;
+        box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+        animation: pulse 2s infinite;
+      }
+      
+      &.error {
+        background: #ef4444;
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+      }
+    }
+
+    .status-text {
+      color: #ffffff;
+      font-size: 0.875rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .loading-spinner {
+      width: 8px;
+      height: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      border-top-color: #f59e0b;
+      animation: spin 1s linear infinite;
+    }
+  }
+
+  // Overview metrics - compact display
+  .status-overview {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-left: auto;
+
+    .overview-metric {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: #9ca3af;
+      font-size: 0.75rem;
+
+      svg {
+        color: #6b7280;
+      }
+    }
+
+    .initialization-progress,
+    .error-message {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #9ca3af;
+      font-size: 0.75rem;
+
+      .progress-bar {
+        width: 60px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+
+        .progress-fill {
+          height: 100%;
+          background: #f59e0b;
+          border-radius: 2px;
+        }
+      }
+    }
+  }
+
+  // Modal Hover untuk Detail Informasi - FIXED POSITIONING
+  .status-modal {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    width: 280px;
+    max-width: 90vw;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 
+      0 20px 60px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+      h3 {
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+
+        &.active {
+          background: rgba(34, 197, 94, 0.2);
+          color: #22c55e;
+          border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        &.loading {
+          background: rgba(245, 158, 11, 0.2);
+          color: #f59e0b;
+          border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        &.error {
+          background: rgba(239, 68, 68, 0.2);
+          color: #ef4444;
+          border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+      }
+    }
+
+    .modal-content {
+      .detail-section {
+        margin-bottom: 1rem;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        h4 {
+          color: #e5e7eb;
+          font-size: 0.85rem;
+          font-weight: 600;
+          margin: 0 0 0.75rem 0;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .metrics-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.5rem;
+
+          .metric-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+
+            svg {
+              color: #6b7280;
+              align-self: flex-start;
+            }
+
+            .metric-label {
+              font-size: 0.7rem;
+              color: #9ca3af;
+              line-height: 1;
+            }
+
+            .metric-value {
+              font-size: 0.8rem;
+              font-weight: 600;
+              color: #ffffff;
+              line-height: 1;
+            }
+          }
+        }
+
+        .progress-container {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+
+          .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+
+            .progress-fill {
+              height: 100%;
+              background: linear-gradient(90deg, #f59e0b, #fbbf24);
+              border-radius: 3px;
+              transition: width 0.3s ease;
+            }
+          }
+
+          .progress-text {
+            font-size: 0.75rem;
+            color: #e5e7eb;
+            text-align: center;
+          }
+        }
+
+        &.error {
+          .error-message {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 6px;
+            color: #ef4444;
+            font-size: 0.8rem;
+
+            svg {
+              color: #ef4444;
+              flex-shrink: 0;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Header mode - kompak untuk header
+  &.header-model-status {
+    padding: 0.5rem 0.75rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    .status-modal {
+      width: 260px;
+      max-width: 85vw;
+    }
+
+    // Overview metrics tetap ditampilkan di header mode
+    .status-overview {
+      gap: 0.75rem; // Sedikit lebih compact
+
+      .overview-metric {
+        font-size: 0.7rem;
+      }
+    }
+  }
+}
+
+// Keyframe animations
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
