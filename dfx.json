@@ -21,7 +21,7 @@
       "workspace": "frontend"
     },
     "ai_canister": {
-      "candid": "src/ai_canister/src/ai_canister.did",
+      "candid": "src/ai_canister/ai_canister.did",
       "type": "rust",
       "package": "ai_canister"
     },
