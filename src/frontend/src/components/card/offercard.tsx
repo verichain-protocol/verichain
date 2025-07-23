@@ -16,7 +16,7 @@ export default function FeatureCard({
   iconColor = "text-white",
 }: FeatureCardProps) {
   return (
-    <div className="group relative flex flex-col items-center bg-[#BAFC020D] rounded-xl w-full max-w-xs sm:max-w-sm md:max-w-md lg:w-80 p-4 sm:p-5 md:p-6 h-auto min-h-[280px] sm:min-h-[300px] md:h-80 transition-all duration-300 hover:bg-gray-800 hover:border-gray-600 hover:shadow-lg hover:shadow-green-500/10 cursor-pointer">
+    <div className="group relative flex flex-col items-center bg-[#BAFC020D] rounded-xl w-full max-w-xs sm:max-w-sm md:max-w-md lg:w-80 p-4 sm:p-5 md:p-6 h-auto min-h-[280px] sm:min-h-[300px] md:h-80 transition-all duration-300  hover:bg-gradient-to-br hover:from-lime-600 hover:to-black hover:shadow-lg hover:shadow-green-500/10 cursor-pointer">
       {/* Icon */}
       <div
         className={`w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 ${iconBgColor} rounded-full flex items-center justify-center mb-3 sm:mb-4 transition-transform duration-300 group-hover:scale-110`}

@@ -4,6 +4,7 @@ import { FaInstagram } from "react-icons/fa";
 import { FaYoutube } from "react-icons/fa";
 import { IoMdMail } from "react-icons/io";
 import { FaXTwitter } from "react-icons/fa6";
+import FooterLogo from "../../assets/FooterLogo.svg"
 
 
 const Footer = () => {
@@ -15,10 +16,12 @@ const Footer = () => {
           {/* Left section - Logo and description */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gray-900 rounded flex items-center justify-center">
-                <div className="w-4 h-4 border-2 border-white rounded-sm"></div>
+              <div className=" flex items-center justify-center">
+                  <img
+                  src={FooterLogo}
+                  />
               </div>
-              <span className="font-bold text-2xl">VERICHAIN</span>
+              <span className="font-bold text-2xl text-[#383838]">VERICHAIN</span>
             </div>
             <p className="text-sm leading-relaxed">
               Trusted API for deepfake detection and digital content verification, powered by Artificial Intelligence

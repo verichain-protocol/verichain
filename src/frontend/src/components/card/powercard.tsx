@@ -16,7 +16,7 @@ export const PowerCard: React.FC<PowerCardProps> = ({
 }) => {
   return (
     <div
-      className={`group relative min-w-[280px] w-[280px] h-[200px] bg-[#BAFC020D] rounded-2xl p-6 transition-all duration-300 hover:bg-lime-600 cursor-pointer ${className}`}
+      className={`group relative min-w-[280px] w-[280px] h-[200px] bg-[#BAFC020D] rounded-2xl p-6 transition-all duration-300 hover:bg-gradient-to-br hover:from-lime-600 hover:to-black cursor-pointer ${className}`}
     >
       <div className="flex justify-center mb-4 mt-2">
         <div className="w-12 h-12 bg-lime-500 rounded-full flex items-center justify-center group-hover:bg-white group-hover:text-lime-600 transition-colors duration-300">

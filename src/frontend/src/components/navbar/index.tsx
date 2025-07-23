@@ -1,15 +1,24 @@
 "use client"
 
 import { useState } from "react"
+import { useLocation } from "react-router-dom"
 import { IoMdMenu } from "react-icons/io";
 import { MdCancel } from "react-icons/md";
 import Logo from "../../assets/Logo.png"; 
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const location = useLocation()
+  const currentPath = location.pathname
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
+  }
+
+  const isActive = (path: string) => {
+    if (path === "/" && currentPath === "/") return true
+    if (path !== "/" && currentPath.startsWith(path)) return true
+    return false
   }
 
   return (
@@ -24,15 +33,29 @@ const Navbar = () => {
           </div>
 
           <nav className="hidden lg:flex items-center text-lg space-x-28">
-            <a href="#" className="text-lime-400 relative">
+            <a href="/" className={`relative transition-colors ${
+              isActive("/") ? "text-lime-400" : "text-gray-300 hover:text-white"
+            }`}>
               Home
-              <div className="w-2 h-2 bg-lime-400 rounded-full absolute -bottom-2 left-1/2 transform -translate-x-1/2"></div>
+              {isActive("/") && (
+                <div className="w-2 h-2 bg-lime-400 rounded-full absolute -bottom-2 left-1/2 transform -translate-x-1/2"></div>
+              )}
             </a>
-            <a href="#" className="text-gray-300 hover:text-white transition-colors">
-              verify
+            <a href="/Dashboard" className={`relative transition-colors ${
+              isActive("/Dashboard") ? "text-lime-400" : "text-gray-300 hover:text-white"
+            }`}>
+              Verify
+              {isActive("/Dashboard") && (
+                <div className="w-2 h-2 bg-lime-400 rounded-full absolute -bottom-2 left-1/2 transform -translate-x-1/2"></div>
+              )}
             </a>
-            <a href="#" className="text-gray-300 hover:text-white transition-colors">
+            <a href="/History" className={`relative transition-colors ${
+              isActive("/History") ? "text-lime-400" : "text-gray-300 hover:text-white"
+            }`}>
               History
+              {isActive("/History") && (
+                <div className="w-2 h-2 bg-lime-400 rounded-full absolute -bottom-2 left-1/2 transform -translate-x-1/2"></div>
+              )}
             </a>
           </nav>
 
@@ -55,19 +78,25 @@ const Navbar = () => {
           }`}
         >
           <nav className="px-6 md:px-16 pb-6 space-y-4 bg-black border-t border-gray-800">
-            <a href="#" className="block text-lime-400 py-2 text-lg font-medium" onClick={() => setIsMenuOpen(false)}>
+            <a href="/" className={`block py-2 text-lg font-medium ${
+              isActive("/") ? "text-lime-400" : "text-gray-300 hover:text-white"
+            } transition-colors`} onClick={() => setIsMenuOpen(false)}>
               Home
             </a>
             <a
-              href="#"
-              className="block text-gray-300 hover:text-white py-2 text-lg transition-colors"
+              href="/Dashboard"
+              className={`block py-2 text-lg ${
+                isActive("/Dashboard") ? "text-lime-400 font-medium" : "text-gray-300 hover:text-white"
+              } transition-colors`}
               onClick={() => setIsMenuOpen(false)}
             >
               verify
             </a>
             <a
-              href="#"
-              className="block text-gray-300 hover:text-white py-2 text-lg transition-colors"
+              href="/History"
+              className={`block py-2 text-lg ${
+                isActive("/History") ? "text-lime-400 font-medium" : "text-gray-300 hover:text-white"
+              } transition-colors`}
               onClick={() => setIsMenuOpen(false)}
             >
               History

@@ -15,7 +15,7 @@ const HomePage = () => {
         <How />
         <Offer />
         <Powers />
-        {/* <Footer /> */}
+        <Footer />
     </div>
   )
 }
