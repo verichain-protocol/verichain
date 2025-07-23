@@ -16,7 +16,7 @@ import {
   Eye,
   Globe
 } from 'lucide-react';
-import './App.scss';
+import './index.scss';
 
 // Import components
 import { ModelStatus } from './components/ModelStatus';

@@ -34,7 +34,7 @@ export interface QuotaStatus {
 export class LogicService {
   private actor: any = null;
   private agent: HttpAgent | null = null;
-  private canisterId: string = import.meta.env.CANISTER_ID_LOGIC_CANISTER || 'umunu-kh777-77774-qaaca-cai';
+  private canisterId: string = process.env.CANISTER_ID_LOGIC_CANISTER || 'umunu-kh777-77774-qaaca-cai';
   private currentPrincipal: Principal | null = null;
 
   constructor() {
@@ -72,14 +72,14 @@ export class LogicService {
    */
   private async initializeAgent(): Promise<void> {
     try {
-      const host = import.meta.env.DFX_NETWORK === 'local' 
+      const host = process.env.DFX_NETWORK === 'local' 
         ? 'http://localhost:4943' 
         : 'https://ic0.app';
 
       this.agent = new HttpAgent({ host });
 
       // Fetch root key for local development
-      if (import.meta.env.DFX_NETWORK === 'local') {
+      if (process.env.DFX_NETWORK === 'local') {
         await this.agent.fetchRootKey();
       }
 

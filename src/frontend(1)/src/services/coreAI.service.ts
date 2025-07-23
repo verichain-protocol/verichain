@@ -16,26 +16,10 @@ if (typeof window !== 'undefined') {
 export class CoreAIService {
   private actor: any = null;
   private agent: HttpAgent | null = null;
-  private canisterId: string;
+  private canisterId: string = process.env.CANISTER_ID_AI_CANISTER || 'rdmx6-jaaaa-aaaah-qcaaa-cai';
 
   constructor() {
-    // Get canister ID with robust fallback
-    this.canisterId = this.getCanisterId();
-    console.log('🔍 CoreAI Service initialized with canister ID:', this.canisterId);
     this.initializeAgent();
-  }
-
-  /**
-   * Get AI canister ID with multiple fallbacks
-   */
-  private getCanisterId(): string {
-    // Try import.meta.env first
-    if (import.meta.env?.CANISTER_ID_AI_CANISTER) {
-      return import.meta.env.CANISTER_ID_AI_CANISTER;
-    }
-    
-    // Fallback to known working canister ID
-    return 'uxrrr-q7777-77774-qaaaq-cai';
   }
 
   /**
@@ -43,27 +27,22 @@ export class CoreAIService {
    */
   private async initializeAgent(): Promise<void> {
     try {
-      // Determine host with robust detection
-      const network = import.meta.env?.DFX_NETWORK || 'local';
-      const host = network === 'local' 
+      const host = process.env.DFX_NETWORK === 'local' 
         ? 'http://localhost:4943' 
         : 'https://ic0.app';
-
-      console.log('🌐 Connecting to host:', host, 'on network:', network);
 
       this.agent = new HttpAgent({ host });
 
       // Fetch root key for local development
-      if (network === 'local') {
+      if (process.env.DFX_NETWORK === 'local') {
         await this.agent.fetchRootKey();
-        console.log('🔑 Root key fetched for local development');
       }
 
       this.actor = createActor(this.canisterId, {
         agent: this.agent,
       });
 
-      console.log('✅ AI Canister connected successfully');
+      // AI Canister connected successfully
     } catch (error) {
       console.error('❌ Failed to initialize AI agent:', error);
       throw error;

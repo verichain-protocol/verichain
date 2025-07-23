@@ -4,26 +4,33 @@ import { defineConfig } from 'vite';
 import environment from 'vite-plugin-environment';
 import dotenv from 'dotenv';
 
+// Load environment variables from the root .env file
 dotenv.config({ path: '../../.env' });
+
+// Print loaded env vars for debugging
+console.log('🔍 Environment Variables Debug:');
+console.log('CANISTER_ID_AI_CANISTER:', process.env.CANISTER_ID_AI_CANISTER);
+console.log('CANISTER_ID_LOGIC_CANISTER:', process.env.CANISTER_ID_LOGIC_CANISTER);
+console.log('DFX_NETWORK:', process.env.DFX_NETWORK);
 
 export default defineConfig({
   build: {
     emptyOutDir: true,
   },
   define: {
-    global: "globalThis",
+    // Explicitly define environment variables for the browser
+    'import.meta.env.CANISTER_ID_AI_CANISTER': JSON.stringify(process.env.CANISTER_ID_AI_CANISTER),
+    'import.meta.env.CANISTER_ID_LOGIC_CANISTER': JSON.stringify(process.env.CANISTER_ID_LOGIC_CANISTER),
+    'import.meta.env.CANISTER_ID_FRONTEND': JSON.stringify(process.env.CANISTER_ID_FRONTEND),
+    'import.meta.env.CANISTER_ID_INTERNET_IDENTITY': JSON.stringify(process.env.CANISTER_ID_INTERNET_IDENTITY),
+    'import.meta.env.DFX_NETWORK': JSON.stringify(process.env.DFX_NETWORK),
   },
-  esbuild: {
-    define: {
-      global: "globalThis",
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: "globalThis",
+      },
     },
-  },
-  css: {
-    preprocessorOptions: {
-      scss: {
-        api: 'modern-compiler'
-      }
-    }
   },
   server: {
     proxy: {
@@ -37,16 +44,6 @@ export default defineConfig({
     react(),
     environment("all", { prefix: "CANISTER_" }),
     environment("all", { prefix: "DFX_" }),
-    environment("all", { prefix: "DEPLOY_" }),
-    environment("all", { prefix: "NODE_" }),
-    environment("all", { prefix: "FRONTEND_" }),
-    environment("all", { prefix: "AI_" }),
-    environment("all", { prefix: "MODEL_" }),
-    environment("all", { prefix: "LOG_" }),
-    environment("all", { prefix: "TEST_" }),
-    environment("all", { prefix: "BATCH_" }),
-    environment("all", { prefix: "MAX_" }),
-    environment("all", { prefix: "INFERENCE_" }),
   ],
   resolve: {
     alias: [

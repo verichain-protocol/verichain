@@ -45,7 +45,7 @@ export class InternetIdentityService {
         throw new Error('AuthClient not initialized');
       }
 
-      const identityProvider = import.meta.env.DFX_NETWORK === 'local' 
+      const identityProvider = process.env.DFX_NETWORK === 'local' 
         ? 'http://localhost:4943?canisterId=rrkah-fqaaa-aaaaa-aaaaq-cai' // Standard local Internet Identity canister ID
         : 'https://identity.ic0.app'; // Production Internet Identity
 
