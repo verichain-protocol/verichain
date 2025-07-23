@@ -45,6 +45,8 @@ export interface ModelInfo {
   supported_formats?: string[];
   max_file_size_mb?: number;
   confidence_threshold?: number;
+  memory_usage_mb?: number; // Real memory usage from health check
+  uptime_seconds?: number; // Real uptime from health check
 }
 
 export interface InitializationStatus {

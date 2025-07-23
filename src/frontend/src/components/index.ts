@@ -7,6 +7,7 @@
 export { AIDetection } from './AIDetection';
 export { SocialMediaUpload } from './SocialMediaUpload';
 export { ModelStatus } from './ModelStatus';
+export { UserAuth } from './UserAuth';
 
 // Dashboard Components
 export { default as Analytics } from './Analytics';
