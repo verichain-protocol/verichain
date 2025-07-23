@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle, Wifi, Zap, Clock, Activity, AlertCircle, Cpu, HardDrive, Gauge } from 'lucide-react';
 import { coreAIService } from '../services/coreAI.service';
 import type { ModelInfo } from '../types/ai.types';
@@ -20,6 +20,7 @@ interface ModelHealth {
   totalChunks?: number;
   isInitialized?: boolean;
   initializationStarted?: boolean;
+  memoryUsageMb?: number; // Real memory usage
 }
 
 export const ModelStatus: React.FC<ModelStatusProps> = ({ className }) => {
@@ -39,6 +40,18 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({ className }) => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [modalPosition, setModalPosition] = useState({ top: 0, left: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const updateModalPosition = useCallback(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setModalPosition({
+        top: rect.bottom + 8, // 8px gap below the component
+        left: Math.max(8, rect.right - 400) // Align right edge, min 8px from left edge
+      });
+    }
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -46,16 +59,18 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({ className }) => {
     const fetchModelStatus = async () => {
       try {
         // Get model info and initialization status from AI canister
+        const startTime = Date.now();
         const modelInfo: ModelInfo = await coreAIService.getModelInfo();
         const initStatus = await coreAIService.getInitializationStatus();
         const isHealthy = await coreAIService.healthCheck();
+        const responseTime = Date.now() - startTime;
         
         if (!mounted) return;
 
         // Calculate initialization progress if still loading
         const initProgress = modelInfo.status === 'ready' ? 100 : 
                             modelInfo.chunks_loaded && modelInfo.total_chunks 
-                            ? (modelInfo.chunks_loaded / modelInfo.total_chunks) * 100 
+                            ? (Number(modelInfo.chunks_loaded) / Number(modelInfo.total_chunks)) * 100 
                             : 0;
 
         // Determine detailed status based on initialization info
@@ -63,11 +78,11 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({ className }) => {
         
         if (modelInfo.status === 'ready' && isHealthy && initStatus.is_initialized) {
           detailedStatus = 'active';
-        } else if (modelInfo.status === 'ready' && !initStatus.is_initialized) {
+        } else if (!initStatus.initialization_started && Number(initStatus.processed_chunks) === 0) {
           detailedStatus = 'not-uploaded';
         } else if (initStatus.initialization_started && !initStatus.is_initialized) {
           detailedStatus = 'initializing';
-        } else if (modelInfo.chunks_loaded > 0 && modelInfo.chunks_loaded < modelInfo.total_chunks) {
+        } else if (Number(initStatus.processed_chunks) > 0 && Number(initStatus.processed_chunks) < Number(initStatus.total_chunks)) {
           detailedStatus = 'uploading';
         } else if (modelInfo.status === 'loading') {
           detailedStatus = 'loading';
@@ -75,16 +90,17 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({ className }) => {
 
         setHealth(prev => ({
           status: detailedStatus,
-          responseTime: isHealthy ? 150 + Math.floor(Math.random() * 50) : 0,
-          accuracy: modelInfo.accuracy || 99.2,
-          uptime: prev.uptime,
-          requestsProcessed: prev.requestsProcessed,
+          responseTime: isHealthy ? responseTime : 0,
+          accuracy: modelInfo.accuracy ? Number(modelInfo.accuracy) : 99.2, // Use model accuracy if available
+          uptime: modelInfo.uptime_seconds ? Number((Number(modelInfo.uptime_seconds) / 3600).toFixed(1)) : 0,
+          requestsProcessed: 0, // Not available from canister, set to 0
           modelReady: modelInfo.status === 'ready' && initStatus.is_initialized,
           initializationProgress: initProgress,
-          chunksUploaded: modelInfo.chunks_loaded || 0,
-          totalChunks: modelInfo.total_chunks || 410,
+          chunksUploaded: Number(initStatus.processed_chunks),
+          totalChunks: Number(initStatus.total_chunks),
           isInitialized: initStatus.is_initialized,
-          initializationStarted: initStatus.initialization_started
+          initializationStarted: initStatus.initialization_started,
+          memoryUsageMb: modelInfo.memory_usage_mb ? Number(modelInfo.memory_usage_mb) : undefined
         }));
         
         setIsLoading(false);
@@ -107,20 +123,9 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({ className }) => {
     // Set up periodic updates for model status
     const healthInterval = setInterval(fetchModelStatus, 10000); // Every 10 seconds
     
-    // Update uptime counter every minute
-    const uptimeInterval = setInterval(() => {
-      if (!mounted) return;
-      
-      setHealth(prev => ({
-        ...prev,
-        uptime: prev.status === 'active' ? prev.uptime + (1/60) : prev.uptime // Add 1 minute in hours
-      }));
-    }, 60000); // Every minute
-
     return () => {
       mounted = false;
       clearInterval(healthInterval);
-      clearInterval(uptimeInterval);
     };
   }, []);
 
@@ -178,7 +183,11 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({ className }) => {
   return (
     <div 
       className={`model-status ${className || ''}`}
-      onMouseEnter={() => setShowModal(true)}
+      ref={containerRef}
+      onMouseEnter={() => {
+        updateModalPosition();
+        setShowModal(true);
+      }}
       onMouseLeave={() => setShowModal(false)}
     >
       <div className="status-indicator">
@@ -199,18 +208,24 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({ className }) => {
           </div>
           <div className="overview-metric">
             <Clock size={12} />
-            <span>{health.uptime.toFixed(1)}%</span>
-          </div>
-          <div className="overview-metric">
-            <Activity size={12} />
-            <span>{health.requestsProcessed.toLocaleString()}</span>
+            <span>{health.uptime.toFixed(1)}h</span>
           </div>
         </div>
       )}
       
       {/* Detailed information modal on hover */}
       {showModal && (
-        <div className="status-modal">
+        <div 
+          className="status-modal"
+          style={{
+            position: 'fixed',
+            top: modalPosition.top,
+            left: modalPosition.left,
+            width: '400px',
+            minWidth: '400px',
+            maxWidth: 'none'
+          }}
+        >
           <div className="modal-header">
             <h3>AI Model Status</h3>
             <div className={`status-badge ${health.status}`}>
@@ -219,7 +234,7 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({ className }) => {
           </div>
           
           <div className="modal-content">
-            {/* Performance Metrics - hanya tampil jika active */}
+            {/* Performance Metrics*/}
             {health.status === 'active' && (
               <div className="detail-section">
                 <h4>Performance Metrics</h4>
@@ -237,12 +252,7 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({ className }) => {
                   <div className="metric-item">
                     <Clock size={16} />
                     <span className="metric-label">Uptime</span>
-                    <span className="metric-value">{health.uptime.toFixed(1)}%</span>
-                  </div>
-                  <div className="metric-item">
-                    <Activity size={16} />
-                    <span className="metric-label">Requests</span>
-                    <span className="metric-value">{health.requestsProcessed.toLocaleString()}</span>
+                    <span className="metric-value">{health.uptime.toFixed(1)}h</span>
                   </div>
                 </div>
               </div>
@@ -259,7 +269,7 @@ export const ModelStatus: React.FC<ModelStatusProps> = ({ className }) => {
                 <div className="metric-item">
                   <HardDrive size={16} />
                   <span className="metric-label">Memory Usage</span>
-                  <span className="metric-value">2.1GB</span>
+                  <span className="metric-value">{health.memoryUsageMb ? `${health.memoryUsageMb.toFixed(0)}MB` : 'N/A'}</span>
                 </div>
                 <div className="metric-item">
                   <Gauge size={16} />

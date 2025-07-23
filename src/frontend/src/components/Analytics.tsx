@@ -50,11 +50,27 @@ export const Analytics: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [modelAccuracy, setModelAccuracy] = useState<number>(0.98); // Dynamic model accuracy
   const [filters, setFilters] = useState<FilterOptions>({
     dateRange: '30d',
     contentType: 'all',
     resultType: 'all'
   });
+
+  /**
+   * Load model accuracy from AI service
+   */
+  const loadModelAccuracy = useCallback(async () => {
+    try {
+      const modelInfo = await coreAIService.getModelInfo();
+      if (modelInfo.accuracy) {
+        setModelAccuracy(modelInfo.accuracy);
+      }
+    } catch (error) {
+      console.warn('Failed to load model accuracy:', error);
+      // Keep default value
+    }
+  }, []);
 
   /**
    * Load analytics data from local storage and AI service
@@ -163,7 +179,7 @@ export const Analytics: React.FC = () => {
         .sort((a, b) => a.date.localeCompare(b.date))
         .slice(-30); // Last 30 days
 
-      // Generate accuracy trend (simulated based on actual detection confidence)
+      // Generate accuracy trend based on actual detection confidence
       const accuracyTrend = dailyStats.map(day => {
         const dayResults = filteredHistory.filter(r => {
           const resultDate = new Date(r.metadata ? JSON.parse(r.metadata).analyzedAt : Date.now())
@@ -173,7 +189,7 @@ export const Analytics: React.FC = () => {
         
         const avgConfidence = dayResults.length > 0
           ? dayResults.reduce((sum, r) => sum + r.confidence, 0) / dayResults.length
-          : 0.98; // Default model accuracy
+          : modelAccuracy; // Use dynamic model accuracy
         
         return {
           date: day.date,
@@ -199,8 +215,9 @@ export const Analytics: React.FC = () => {
   }, [filters]);
 
   useEffect(() => {
+    loadModelAccuracy(); // Load model accuracy first
     loadAnalyticsData();
-  }, [loadAnalyticsData]);
+  }, [loadModelAccuracy, loadAnalyticsData]);
 
   /**
    * Export analytics data as JSON

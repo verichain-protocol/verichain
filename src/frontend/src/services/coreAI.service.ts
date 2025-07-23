@@ -5,7 +5,7 @@ import { HttpAgent } from '@dfinity/agent';
 import { IDL } from '@dfinity/candid';
 import { createActor } from '../../../declarations/ai_canister';
 import { DetectionResult, ModelInfo } from '../types/ai.types';
-import { authService } from './auth.service';
+import { logicService } from './logic.service';
 
 // Browser polyfill for global object
 (globalThis as any).global = globalThis;
@@ -65,38 +65,62 @@ export class CoreAIService {
     await this.ensureActor();
     
     // Check user quota before processing
-    const quotaCheck = await authService.canPerformAnalysis();
-    if (!quotaCheck.allowed) {
-      throw new Error(quotaCheck.reason || 'Analysis not allowed');
+    const quotaStatus = await logicService.getQuotaStatus();
+    if (quotaStatus.remaining <= 0) {
+      throw new Error('Analysis quota exceeded');
     }
     
     try {
-      // Call AI canister - it returns Result<DetectionResult, String>
-      const result = await this.actor.analyze_image(Array.from(imageData));
+      // Call AI canister - it returns Result<MediaAnalysisResult, String>
+      const result = await this.actor.analyze(Array.from(imageData));
       
-      // Handle canister result (Result<DetectionResult, text>)
+      // Handle canister result (Result<MediaAnalysisResult, text>)
       if ('Err' in result) {
-        throw new Error(`AI Canister Error: ${result.Err}`);
+        throw new Error(`AI Analysis Error: ${result.Err}`);
       }
       
-      const detectionResult = result.Ok;
+      const analysisResult = result.Ok;
       
-      // Record usage after successful analysis
-      authService.recordAnalysisUsage();
+      // Extract prediction label correctly - check which variant is set
+      let predictionLabel = 'Real';
+      let isDeepfake = false;
       
-      // Get updated quota info
-      const quotaStatus = await authService.getQuotaStatus();
+      if ('Real' in analysisResult.prediction.label) {
+        predictionLabel = 'Real';
+        isDeepfake = false;
+      } else if ('AIGenerated' in analysisResult.prediction.label) {
+        predictionLabel = 'AI Generated';
+        isDeepfake = true;
+      } else if ('Deepfake' in analysisResult.prediction.label) {
+        predictionLabel = 'Deepfake';
+        isDeepfake = true;
+      }
+      
+      // Safely convert BigInt values to Numbers
+      const processingTime = typeof analysisResult.processing_time_ms === 'bigint' 
+        ? Number(analysisResult.processing_time_ms) 
+        : analysisResult.processing_time_ms;
+      
+      const processedAt = typeof analysisResult.processed_at === 'bigint'
+        ? Number(analysisResult.processed_at)
+        : analysisResult.processed_at;
       
       return {
-        is_deepfake: detectionResult.is_deepfake,
-        confidence: detectionResult.confidence,
+        is_deepfake: isDeepfake,
+        confidence: analysisResult.prediction.confidence,
         media_type: 'image',
-        processing_time_ms: detectionResult.processing_time_ms || 0,
-        metadata: detectionResult.metadata || '{}',
-        model_version: '1.0.0', // Use fixed version since canister doesn't return this
+        processing_time_ms: processingTime,
+        metadata: JSON.stringify({
+          model_version: analysisResult.model_version,
+          processed_at: processedAt,
+          input_size: analysisResult.input_size,
+          raw_scores: analysisResult.prediction.raw_scores,
+          prediction_label: predictionLabel
+        }),
+        model_version: analysisResult.model_version,
         user_info: {
-          tier: quotaStatus.tier,
-          remaining_quota: quotaStatus.remaining,
+          tier: quotaStatus.tier as 'guest' | 'registered' | 'premium',
+          remaining_quota: quotaStatus.remaining - 1, // Subtract one for this analysis
           quota_resets_at: quotaStatus.resets_at,
           total_quota: quotaStatus.total
         }
@@ -108,44 +132,68 @@ export class CoreAIService {
   }
 
   /**
-   * Analyze video for deepfake detection
+   * Analyze video for deepfake detection (uses same analyze method as images)
    */
   async analyzeVideo(videoData: Uint8Array): Promise<DetectionResult> {
     await this.ensureActor();
     
     // Check user quota before processing
-    const quotaCheck = await authService.canPerformAnalysis();
-    if (!quotaCheck.allowed) {
-      throw new Error(quotaCheck.reason || 'Analysis not allowed');
+    const quotaStatus = await logicService.getQuotaStatus();
+    if (quotaStatus.remaining <= 0) {
+      throw new Error('Analysis quota exceeded');
     }
     
     try {
-      // Call AI canister - it returns Result<DetectionResult, String>
-      const result = await this.actor.analyze_video(Array.from(videoData));
+      // Call AI canister - it returns Result<MediaAnalysisResult, String>
+      const result = await this.actor.analyze(Array.from(videoData));
       
-      // Handle canister result (Result<DetectionResult, text>)
+      // Handle canister result (Result<MediaAnalysisResult, text>)
       if ('Err' in result) {
-        throw new Error(`AI Canister Error: ${result.Err}`);
+        throw new Error(`AI Analysis Error: ${result.Err}`);
       }
       
-      const detectionResult = result.Ok;
+      const analysisResult = result.Ok;
       
-      // Record usage after successful analysis
-      authService.recordAnalysisUsage();
+      // Extract prediction label correctly - check which variant is set
+      let predictionLabel = 'Real';
+      let isDeepfake = false;
       
-      // Get updated quota info
-      const quotaStatus = await authService.getQuotaStatus();
+      if ('Real' in analysisResult.prediction.label) {
+        predictionLabel = 'Real';
+        isDeepfake = false;
+      } else if ('AIGenerated' in analysisResult.prediction.label) {
+        predictionLabel = 'AI Generated';
+        isDeepfake = true;
+      } else if ('Deepfake' in analysisResult.prediction.label) {
+        predictionLabel = 'Deepfake';
+        isDeepfake = true;
+      }
+      
+      // Safely convert BigInt values to Numbers
+      const processingTime = typeof analysisResult.processing_time_ms === 'bigint' 
+        ? Number(analysisResult.processing_time_ms) 
+        : analysisResult.processing_time_ms;
+      
+      const processedAt = typeof analysisResult.processed_at === 'bigint'
+        ? Number(analysisResult.processed_at)
+        : analysisResult.processed_at;
       
       return {
-        is_deepfake: detectionResult.is_deepfake,
-        confidence: detectionResult.confidence,
+        is_deepfake: isDeepfake,
+        confidence: analysisResult.prediction.confidence,
         media_type: 'video',
-        processing_time_ms: detectionResult.processing_time_ms || 0,
-        metadata: detectionResult.metadata || '{}',
-        model_version: '1.0.0', // Use fixed version since canister doesn't return this
+        processing_time_ms: processingTime,
+        metadata: JSON.stringify({
+          model_version: analysisResult.model_version,
+          processed_at: processedAt,
+          input_size: analysisResult.input_size,
+          raw_scores: analysisResult.prediction.raw_scores,
+          prediction_label: predictionLabel
+        }),
+        model_version: analysisResult.model_version,
         user_info: {
-          tier: quotaStatus.tier,
-          remaining_quota: quotaStatus.remaining,
+          tier: quotaStatus.tier as 'guest' | 'registered' | 'premium',
+          remaining_quota: quotaStatus.remaining - 1, // Subtract one for this analysis
           quota_resets_at: quotaStatus.resets_at,
           total_quota: quotaStatus.total
         }
@@ -165,18 +213,21 @@ export class CoreAIService {
     try {
       const info = await this.actor.get_model_info();
       const health = await this.actor.health_check();
+      const initStatus = await this.actor.get_initialization_status();
       
       return {
         version: info.version,
         accuracy: 99.2, // Real ViT model accuracy
         status: health.model_loaded ? 'ready' : 'loading',
         last_updated: new Date().toISOString(),
-        chunks_loaded: health.model_loaded ? 1 : 0,
-        total_chunks: 1,
+        chunks_loaded: initStatus.processed_chunks, // REAL DATA from canister
+        total_chunks: initStatus.total_chunks, // REAL DATA from canister
         input_size: info.input_size,
         supported_formats: info.supported_formats,
-        max_file_size_mb: info.max_file_size_mb,
-        confidence_threshold: info.confidence_threshold
+        max_file_size_mb: info.max_file_size_mb || 50,
+        confidence_threshold: info.confidence_threshold || 0.5,
+        memory_usage_mb: health.memory_usage_mb, // REAL memory usage
+        uptime_seconds: health.uptime_seconds // REAL uptime
       };
     } catch (error) {
       console.error('❌ Failed to get model info:', error);
@@ -208,11 +259,16 @@ export class CoreAIService {
 
       const result = await this.actor.get_initialization_status();
       
-      if ('Ok' in result) {
-        return result.Ok;
-      } else {
-        throw new Error(result.Err || 'Failed to get initialization status');
-      }
+      // Map snake_case to camelCase for frontend consistency
+      return {
+        is_initialized: result.is_initialized,
+        is_streaming: false,
+        processed_chunks: result.processed_chunks,
+        total_chunks: result.total_chunks,
+        current_size_mb: result.current_size_mb,
+        estimated_total_size_mb: result.estimated_total_size_mb,
+        initialization_started: result.initialization_started
+      };
     } catch (error) {
       console.error('❌ Failed to get initialization status:', error);
       // Return default status if canister call fails
@@ -232,14 +288,18 @@ export class CoreAIService {
    * Get current user quota status
    */
   async getUserQuotaStatus() {
-    return await authService.getQuotaStatus();
+    return await logicService.getQuotaStatus();
   }
 
   /**
    * Check if user can perform analysis
    */
   async canUserAnalyze() {
-    return await authService.canPerformAnalysis();
+    const quotaStatus = await logicService.getQuotaStatus();
+    return {
+      allowed: quotaStatus.remaining > 0,
+      reason: quotaStatus.remaining <= 0 ? 'Analysis quota exceeded' : undefined
+    };
   }
 
   /**
@@ -271,7 +331,8 @@ export class CoreAIService {
   }
 
   /**
-   * REAL IMPLEMENTATION: Analyze social media content using AI canister
+   * Analyze social media content using AI canister
+   * This is a simplified version that analyzes the first frame if frames are provided
    */
   async analyzeSocialMedia(socialMediaInput: {
     url: string;
@@ -282,63 +343,61 @@ export class CoreAIService {
     await this.ensureActor();
     
     // Check user quota before processing
-    const quotaCheck = await authService.canPerformAnalysis();
-    if (!quotaCheck.allowed) {
-      throw new Error(quotaCheck.reason || 'Analysis not allowed');
+    const quotaStatus = await logicService.getQuotaStatus();
+    if (quotaStatus.remaining <= 0) {
+      throw new Error('Analysis quota exceeded');
     }
     
     try {
-      // Include auth token if available
-      const authToken = authService.getAuthToken();
-      
-      // Call AI canister method
-      const payload: any = {
-        url: socialMediaInput.url,
-        platform: socialMediaInput.platform,
-        frames: socialMediaInput.frames.map(frame => Array.from(frame)),
-        metadata: socialMediaInput.metadata ? [socialMediaInput.metadata] : []
-      };
-      // Debug log to verify final payload (do not stringify)
-      console.dir({ payload }, { depth: null });
-      // Type assertion: ensure platform is a Candid variant object
-      if (typeof payload.platform !== 'object' || payload.platform === null) {
-        throw new Error('Payload platform is not a Candid variant object!');
+      // For now, analyze the first frame if available
+      // In a real implementation, you might want to extract frames from the social media URL
+      if (socialMediaInput.frames.length === 0) {
+        throw new Error('No frames available for analysis');
       }
-      const result = await this.actor.analyze_social_media(payload);
       
-      // Handle canister result (Result<DetectionResult, text>)
+      const firstFrame = socialMediaInput.frames[0];
+      
+      // Call AI canister analyze method
+      const result = await this.actor.analyze(Array.from(firstFrame));
+      
+      // Handle canister result (Result<MediaAnalysisResult, text>)
       if ('Err' in result) {
         throw new Error(`AI Canister Error: ${result.Err}`);
       }
       
-      const detectionResult = result.Ok;
+      const analysisResult = result.Ok;
       
-      // Record usage after successful analysis
-      authService.recordAnalysisUsage();
-      
-      // Get updated quota info
-      const quotaStatus = await authService.getQuotaStatus();
+      // Convert AI canister result to our DetectionResult format
+      const isDeepfake = analysisResult.prediction.label.Deepfake !== undefined;
       
       return {
-        is_deepfake: detectionResult.is_deepfake,
-        confidence: detectionResult.confidence,
+        is_deepfake: isDeepfake,
+        confidence: analysisResult.prediction.confidence,
         media_type: 'social_media',
-        processing_time_ms: detectionResult.processing_time_ms || 0,
-        metadata: detectionResult.metadata || '{}',
-        model_version: detectionResult.model_version,
+        processing_time_ms: Number(analysisResult.processing_time_ms),
+        metadata: JSON.stringify({
+          url: socialMediaInput.url,
+          platform: socialMediaInput.platform,
+          model_version: analysisResult.model_version,
+          processed_at: analysisResult.processed_at,
+          input_size: analysisResult.input_size,
+          raw_scores: analysisResult.prediction.raw_scores,
+          custom_metadata: socialMediaInput.metadata
+        }),
+        model_version: analysisResult.model_version,
         user_info: {
-          tier: quotaStatus.tier,
-          remaining_quota: quotaStatus.remaining,
+          tier: quotaStatus.tier as 'guest' | 'registered' | 'premium',
+          remaining_quota: quotaStatus.remaining - 1,
           total_quota: quotaStatus.total,
           quota_resets_at: quotaStatus.resets_at
         },
         analysis_details: {
-          classification: detectionResult.is_deepfake ? 'deepfake' : 'authentic',
-          class_confidence: detectionResult.confidence,
+          classification: isDeepfake ? 'deepfake' : 'authentic',
+          class_confidence: analysisResult.prediction.confidence,
           classes: {
-            real_probability: detectionResult.is_deepfake ? (1 - detectionResult.confidence) : detectionResult.confidence,
-            ai_generated_probability: 0.15,
-            deepfake_probability: detectionResult.is_deepfake ? detectionResult.confidence : (1 - detectionResult.confidence)
+            real_probability: analysisResult.prediction.raw_scores.real,
+            ai_generated_probability: analysisResult.prediction.raw_scores.ai_generated,
+            deepfake_probability: analysisResult.prediction.raw_scores.deepfake
           }
         }
       };
