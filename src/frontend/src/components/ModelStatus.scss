@@ -11,6 +11,8 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   cursor: pointer;
+  width: fit-content; // Width fits content when not hovered
+  max-width: 90vw;
 
   .status-indicator {
     display: flex;
@@ -117,13 +119,16 @@
     }
   }
 
-  // Modal Hover untuk Detail Informasi - FIXED POSITIONING
+  // Modal Hover untuk Detail Informasi - FIXED POSITIONING WITH PORTAL
   .status-modal {
-    position: absolute;
-    top: calc(100% + 0.5rem);
-    right: 0;
-    width: 300px;
-    max-width: 90vw;
+    position: fixed; // CHANGED: Use fixed positioning to escape parent constraints
+    top: auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: 400px !important; // FORCE 400px width with !important
+    min-width: 400px !important; // Ensure minimum width
+    max-width: none !important; // Remove max-width constraint
     max-height: 60vh;
     overflow-y: auto;
     background: linear-gradient(135deg, rgba(26, 26, 46, 0.98) 0%, rgba(22, 33, 62, 0.98) 100%);
@@ -131,15 +136,9 @@
     border-radius: 12px;
     backdrop-filter: blur(20px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    z-index: 1000;
-    animation: modalFadeIn 0.2s ease-out;
-    border-radius: 12px;
-    padding: 1rem;
-    box-shadow: 
-      0 20px 60px rgba(0, 0, 0, 0.4),
-      0 0 0 1px rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
     z-index: 9999;
+    animation: modalFadeIn 0.2s ease-out;
+    padding: 1rem;
 
     .modal-header {
       display: flex;

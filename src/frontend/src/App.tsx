@@ -20,6 +20,7 @@ import './App.scss';
 
 // Import components
 import { ModelStatus } from './components/ModelStatus';
+import { UserAuth } from './components/UserAuth';
 import { AIDetection } from './components/AIDetection';
 import { SocialMediaUpload } from './components/SocialMediaUpload';
 import Analytics from './components/Analytics';
@@ -63,24 +64,34 @@ const App: React.FC = () => {
   return (
     <div className="verichain-app">
       {/* Header */}
+            {/* Header */}
       <header className="app-header">
-        <div className="header-content">
-          <div className="logo-section">
-            <div className="logo-icon-wrapper">
-              <Shield className="logo-icon" size={32} />
-              <div className="logo-pulse"></div>
-            </div>
-            <div className="logo-text">
-              <h1>
-                <span className="veri">Veri</span>
-                <span className="chain">Chain</span>
-              </h1>
-              <p>AI Detection Platform</p>
+        <div className="header-container">
+          {/* Left: VeriChain Logo */}
+          <div className="header-left">
+            <div className="logo-wrapper">
+              <div className="logo-icon-wrapper">
+                <Shield className="logo-icon" size={32} />
+                <div className="logo-pulse"></div>
+              </div>
+              <div className="logo-text">
+                <h1>
+                  <span className="veri">Veri</span>
+                  <span className="chain">Chain</span>
+                </h1>
+                <p>AI Detection Platform</p>
+              </div>
             </div>
           </div>
           
-          <div className="header-actions">
+          {/* Center: Model Status */}
+          <div className="header-center">
             <ModelStatus className="header-model-status" />
+          </div>
+          
+          {/* Right: Login/Register */}
+          <div className="header-right">
+            <UserAuth className="header-user-auth" />
           </div>
         </div>
       </header>

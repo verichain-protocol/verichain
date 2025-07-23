@@ -123,6 +123,20 @@ export const AIDetection: React.FC<AIDetectionProps> = ({ className = '', onResu
       setAnalysisProgress({
         state: 'processing',
         progress: 10,
+        message: 'Checking model status...'
+      });
+
+      // Check if model is ready before analysis
+      const modelInfo = await coreAIService.getModelInfo();
+      const initStatus = await coreAIService.getInitializationStatus();
+      
+      if (modelInfo.status !== 'ready' || !initStatus.is_initialized) {
+        throw new Error('AI Model is not ready for analysis. Please ensure the model is uploaded and initialized.');
+      }
+
+      setAnalysisProgress({
+        state: 'processing',
+        progress: 20,
         message: 'Preparing file for analysis...'
       });
 
@@ -132,7 +146,7 @@ export const AIDetection: React.FC<AIDetectionProps> = ({ className = '', onResu
 
       setAnalysisProgress({
         state: 'processing',
-        progress: 30,
+        progress: 50,
         message: 'Uploading to AI canister...'
       });
 
@@ -313,7 +327,10 @@ export const AIDetection: React.FC<AIDetectionProps> = ({ className = '', onResu
                 
                 <div className="result-summary">
                   <h3 className={result.is_deepfake ? 'deepfake' : 'authentic'}>
-                    {result.is_deepfake ? 'Deepfake Detected' : 'Content Authentic'}
+                    {(() => {
+                      const metadata = JSON.parse(result.metadata || '{}');
+                      return metadata.prediction_label || (result.is_deepfake ? 'Deepfake' : 'Real');
+                    })()}
                   </h3>
                   <div className="confidence-score">
                     Confidence: {formatConfidence(result.confidence)}
@@ -321,7 +338,14 @@ export const AIDetection: React.FC<AIDetectionProps> = ({ className = '', onResu
                 </div>
                 
                 <div className={`result-badge ${result.is_deepfake ? 'deepfake' : 'authentic'}`}>
-                  {result.is_deepfake ? 'Manipulated' : 'Original'}
+                  {(() => {
+                    const metadata = JSON.parse(result.metadata || '{}');
+                    const label = metadata.prediction_label || (result.is_deepfake ? 'Deepfake' : 'Real');
+                    if (label === 'Real') return 'Original';
+                    if (label === 'AI Generated') return 'AI Generated';
+                    if (label === 'Deepfake') return 'Deepfake';
+                    return result.is_deepfake ? 'Manipulated' : 'Original';
+                  })()}
                 </div>
               </div>
 
@@ -332,7 +356,9 @@ export const AIDetection: React.FC<AIDetectionProps> = ({ className = '', onResu
                 </div>
                 
                 <div className="detail-item">
-                  <div className="detail-value">{formatProcessingTime(result.processing_time_ms)}</div>
+                  <div className="detail-value">
+                    {result.processing_time_ms === 0 ? 'Error' : formatProcessingTime(result.processing_time_ms)}
+                  </div>
                   <div className="detail-label">Processing Time</div>
                 </div>
                 
@@ -345,6 +371,22 @@ export const AIDetection: React.FC<AIDetectionProps> = ({ className = '', onResu
                   <div className="detail-value">{result.model_version}</div>
                   <div className="detail-label">Model Version</div>
                 </div>
+
+                {/* Show prediction details from metadata */}
+                {result.metadata && (() => {
+                  try {
+                    const metadata = JSON.parse(result.metadata);
+                    const predictionLabel = metadata.prediction_label || (result.is_deepfake ? 'Deepfake/AI Generated' : 'Real');
+                    return (
+                      <div className="detail-item">
+                        <div className="detail-value">{predictionLabel}</div>
+                        <div className="detail-label">AI Prediction</div>
+                      </div>
+                    );
+                  } catch {
+                    return null;
+                  }
+                })()}
               </div>
 
               <div className="confidence-bar">

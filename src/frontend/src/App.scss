@@ -176,82 +176,84 @@ body {
   top: 0;
   z-index: 100;
   
-  .header-content {
+  .header-container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 0 var(--space-6);
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-between;
     height: 80px;
-    position: relative;
+    gap: var(--space-6);
   }
   
-  .logo-section {
+  .header-left {
+    justify-self: start;
+    
+    .logo-wrapper {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      
+      .logo-icon-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        
+        .logo-icon {
+          color: var(--primary-blue);
+          filter: drop-shadow(0 0 12px rgba(0, 102, 255, 0.5));
+        }
+        
+        .logo-pulse {
+          position: absolute;
+          inset: -4px;
+          border: 2px solid var(--primary-blue);
+          border-radius: var(--radius-full);
+          opacity: 0.3;
+          animation: pulse 2s infinite;
+        }
+      }
+      
+      .logo-text {
+        h1 {
+          font-size: 1.75rem;
+          font-weight: 800;
+          margin: 0;
+          line-height: 1;
+          
+          .veri {
+            color: var(--primary-blue);
+          }
+          
+          .chain {
+            color: var(--accent-cyan);
+          }
+        }
+        
+        p {
+          color: var(--text-secondary);
+          font-size: 0.875rem;
+          font-weight: 500;
+          margin: 0;
+          margin-top: 2px;
+          opacity: 0.8;
+        }
+      }
+    }
+  }
+  
+  .header-center {
+    justify-self: center;
+    display: flex;
+    align-items: center;
+  }
+  
+  .header-right {
+    justify-self: end;
     display: flex;
     align-items: center;
     gap: var(--space-4);
-    
-    .logo-icon-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-      
-      .logo-icon {
-        color: var(--primary-blue);
-        filter: drop-shadow(0 0 12px rgba(0, 102, 255, 0.5));
-      }
-      
-      .logo-pulse {
-        position: absolute;
-        inset: -4px;
-        border: 2px solid var(--primary-blue);
-        border-radius: var(--radius-full);
-        opacity: 0.3;
-        animation: pulse 2s infinite;
-      }
-    }
-    
-    .logo-text {
-      h1 {
-        font-size: 1.75rem;
-        font-weight: 800;
-        margin: 0;
-        line-height: 1;
-        
-        .veri {
-          color: var(--text-primary);
-        }
-        
-        .chain {
-          color: var(--primary-blue);
-          background: linear-gradient(135deg, var(--primary-blue), var(--accent-cyan));
-          background-clip: text;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-      }
-      
-      p {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        margin: 0;
-        font-weight: 500;
-        line-height: 1;
-      }
-    }
-  }
-  
-  .header-actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    flex: 1;
-    
-    // ModelStatus sudah memiliki styling sendiri
-    .header-model-status {
-      margin-left: auto;
-    }
   }
 }
 
