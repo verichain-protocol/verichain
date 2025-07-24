@@ -1,21 +1,21 @@
 # VeriChain AI Model
 
-## Model Resources
+## Resources
 
-- **🤗 Model**: [einrafh/verichain-deepfake-models](https://huggingface.co/einrafh/verichain-deepfake-models)
-- **📊 Dataset**: [einrafh/verichain-deepfake-data](https://huggingface.co/datasets/einrafh/verichain-deepfake-data)
-- **⚙️ Training Code**: [verichain-ai-model](https://github.com/verichain-protocol/verichain-ai-model)
+- **Model**: [einrafh/verichain-deepfake-models](https://huggingface.co/einrafh/verichain-deepfake-models)
+- **Dataset**: [einrafh/verichain-deepfake-data](https://huggingface.co/datasets/einrafh/verichain-deepfake-data)
+- **Training Code**: [verichain-ai-model](https://github.com/verichain-protocol/verichain-ai-model)
 
 ## Overview
 
-Vision Transformer (ViT) model fine-tuned for deepfake detection. Classifies content as **Real**, **AI-Generated**, or **Deepfake**.
+Vision Transformer (ViT) model fine-tuned for deepfake detection with 99.90% accuracy. Classifies content as **Real**, **AI-Generated**, or **Deepfake**.
 
-## Model Specifications
+## Specifications
 
 - **Architecture**: Vision Transformer (ViT)
-- **Input Size**: 224×224 RGB
+- **Input Size**: 224×224 RGB images
 - **Format**: ONNX (327.56 MB)
-- **Classes**: Real, AI-Generated, Deepfake
+- **Classes**: 3 (Real, AI-Generated, Deepfake)
 - **Inference Time**: 200-500ms per image
 
 ## Performance
@@ -33,32 +33,22 @@ Vision Transformer (ViT) model fine-tuned for deepfake detection. Classifies con
 **50,000+ curated samples**:
 - **Real**: Natural photographs and portraits
 - **AI-Generated**: Stable Diffusion, DALL-E, Midjourney outputs  
-- **Deepfake**: FaceSwap, DeepFaceLab, modern synthesis
-- **Quality**: Human-verified, balanced distribution
+- **Deepfake**: FaceSwap, DeepFaceLab, modern synthesis methods
+- **Quality**: Human-verified with balanced class distribution
 
 ## Usage
 
-### Direct Hugging Face
+### Hugging Face Integration
+The model is available through the Hugging Face transformers library for direct use in Python environments.
 
-```python
-from transformers import pipeline
-classifier = pipeline("image-classification", model="einrafh/verichain-deepfake-models")
-result = classifier(image)
-```
-
-### VeriChain Platform
-
-```typescript
-import { CoreAIService } from './services/coreAI.service';
-const aiService = new CoreAIService();
-const result = await aiService.analyzeImage(imageFile);
-```
+### VeriChain Platform Integration
+The model is integrated into the VeriChain platform through the AI service interface for seamless web-based analysis.
 
 ## ICP Deployment
 
 - **Storage**: Chunked for Internet Computer stable memory
 - **Format**: ONNX optimized for canister inference
-- **Configuration**: Environment-based chunk size control
+- **Configuration**: Environment-based chunk size control (0.8MB default)
 
 ---
 
