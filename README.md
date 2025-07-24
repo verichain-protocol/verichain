@@ -1,87 +1,133 @@
-# VeriChain: On-Chain Deepfake Detection Platform
+# VeriChain
 
-VeriChain is a decentralized application built on the Internet Computer that provides a trustless and transparent solution for detecting deepfakes and AI-generated media. By leveraging an on-chain AI model, it offers verifiable analysis for images and videos.
+**Deepfake Detection Platform on Internet Computer Protocol**
 
-## 🏛️ Architecture
+VeriChain is a blockchain-powered deepfake detection platform utilizing a fine-tuned Vision Transformer (ViT) model with 99.90% accuracy to identify real, AI-generated, and deepfake content.
 
-This project is structured as a **monorepo**, containing all necessary services within a single repository for streamlined development and deployment.
+## 🔗 Resources
 
--   **`src/frontend/`**: The user-facing web application, built with React. It interacts with the `logic_canister` for all backend operations.
--   **`src/logic_canister/`**: The "application brain," written in Motoko. It handles all business logic, including user authentication (via Internet Identity), usage quotas, API key management, and orchestrates calls to the AI canister.
--   **`src/ai_canister/`**: The "AI engine," written in Rust for maximum performance. This canister is dedicated to running the ONNX model for deepfake detection inference.
+### 🤖 AI Model & Dataset
+- **Model**: [einrafh/verichain-deepfake-models](https://huggingface.co/einrafh/verichain-deepfake-models) - Pre-trained ViT models
+- **Dataset**: [einrafh/verichain-deepfake-data](https://huggingface.co/datasets/einrafh/verichain-deepfake-data) - Curated detection dataset
+- **Training Code**: [verichain-ai-model](https://github.com/verichain-protocol/verichain-ai-model) - Model training pipeline
 
-This hybrid architecture leverages the strengths of each language: the safety and ease of Motoko for business logic, and the raw performance of Rust for computationally intensive AI tasks.
+### 📚 Documentation
+- **[API Reference](docs/API.md)** - Integration guide and endpoints
+- **[Development Guide](docs/DEVELOPMENT.md)** - Setup and contribution guide
+- **[Model Details](docs/MODEL.md)** - Architecture and performance metrics
 
-## 🛠️ Tech Stack
+## ✨ Key Features
 
--   **Frontend:** React, TypeScript, Vite
--   **Logic Canister:** Motoko
--   **AI Canister:** Rust
--   **Blockchain:** Internet Computer (ICP)
+- **🎯 99.90% Accuracy**: Vision Transformer model for deepfake detection
+- **📁 Multi-Format Support**: Images (JPG, PNG) and videos (MP4, MOV)
+- **👥 Tiered Access**: Guest (3 analyses), Registered (30/month), Premium (1000/month)
+- **🔐 Blockchain Verification**: Immutable detection records on ICP
+- **⚡ Real-Time Processing**: 200-500ms analysis time
+- **🌐 Modern Frontend**: React TypeScript with real-time AI integration
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
-Follow these steps to set up and run the project on your local machine.
+### ⚡ One-Command Setup
 
-### 1. Prerequisites
-
-Ensure you have the following installed:
--   [DFX (ICP SDK)](https://internetcomputer.org/docs/current/developer-docs/setup/install) (version 0.15.0 or later)
--   [Node.js](https://nodejs.org) (version 18.x or later)
--   [Rust & Cargo](https://www.rust-lang.org/tools/install) with the `wasm32-unknown-unknown` target (`rustup target add wasm32-unknown-unknown`)
--   [Mops](https://mops.one/) (`npm install -g mops`)
-
-### 2. Installation & Setup
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/VeriChain-Studio/verichain.git
-    cd verichain
-    ```
-
-2.  **Download the AI Model:**
-    The AI canister requires the pre-trained `.onnx` model file.
-    -   Download `verichain-model.onnx` from the [Hugging Face Model Hub](https://huggingface.co/einrafh/verichain-deepfake-models/tree/main/models/onnx).
-    -   Create a directory `src/ai_canister/assets/`.
-    -   Place the downloaded `verichain-model.onnx` file inside this `assets` directory.
-
-3.  **Initialize Motoko Package Manager:**
-    This command creates the `mops.toml` configuration file.
-    ```bash
-    mops init
-    ```
-    *(When prompted, select `Project` and choose `n` for the GitHub workflow.)*
-
-4.  **Install All Dependencies:**
-    This single command will install dependencies for the frontend (`npm`), Motoko (`mops`), and Rust (`cargo`).
-    ```bash
-    npm install && mops install && cargo update
-    ```
-
-### 3. Running the Application Locally
-
-For local development, it's best to use two separate terminal windows.
-
-**In Terminal 1 - Start the Local Replica:**
-This terminal will run the local Internet Computer network. Keep it open to see live log outputs.
+Clone the repository and run the setup command:
 ```bash
-# Start the local replica with a clean state
-dfx start --background --clean
+git clone https://github.com/verichain-protocol/verichain.git
+cd verichain
+make setup
 ```
 
-**In Terminal 2 - Deploy the Canisters:**
-Use this terminal to run all other `dfx` commands.
-```bash
-# Deploy all canisters to the local network
-dfx deploy
-```
+The setup command handles all prerequisites, dependencies, environment configuration, AI model download, network setup, and deployment.
 
-Once deployed, the terminal will provide you with URLs to access the frontend and the Candid UI for each canister.
+### 🔧 Alternative Commands
+
+- `make install` - Install dependencies only
+- `make model-setup` - Setup AI model separately  
+- `make dev` - Start development server
+- `make build` - Build for production
+- `make deploy` - Deploy to Internet Computer
+
+### 🔄 Troubleshooting
+
+- `make reset-setup` - Reset everything and start fresh
+- `make clean-setup` - Clean setup (preserves dependencies)
+- `make status` - Check system status
+
+## 🏗️ Project Architecture
+
+### 🛠️ Canisters
+
+**🤖 AI Canister** (Rust)
+- ONNX model inference engine
+- Image preprocessing and analysis
+- Chunked model storage for ICP compatibility
+
+**⚙️ Logic Canister** (Motoko)
+- User management and authentication
+- Quota tracking and tier management
+- API endpoints and business logic
+
+**🌐 Frontend** (TypeScript + React)
+- Modern web interface with Vite
+- Real-time canister integration
+- Responsive design with Tailwind CSS
+
+### 📋 Build System
+
+**📄 Makefile** - Central command interface
+- `make setup` - Complete project initialization
+- `make dev` - Development environment
+- `make build` - Production build
+- `make deploy` - Network deployment
+- `make test` - Test suite execution
+
+**📂 Scripts Directory**  
+- `setup.sh` - Automated project setup with error handling
+- `build.sh` - Build orchestration for all components
+- `deploy.sh` - Multi-network deployment (local/IC)
+- `dev.sh` - Development server with hot reload
+- `test.sh` - Test execution and health checks
+
+**🔧 Tools Directory**
+- `model_chunker.py` - AI model chunking for ICP deployment
+
+## 🧠 AI Model
+
+**🎯 Vision Transformer with 99.90% Accuracy**
+
+- **🤗 Model**: [einrafh/verichain-deepfake-models](https://huggingface.co/einrafh/verichain-deepfake-models)
+- **📊 Dataset**: [einrafh/verichain-deepfake-data](https://huggingface.co/datasets/einrafh/verichain-deepfake-data)  
+- **⚙️ Training**: [verichain-ai-model](https://github.com/verichain-protocol/verichain-ai-model)
+
+The model is available for direct use via Hugging Face transformers library or integrated through the VeriChain platform's AI service interface.
+
+## 💻 Development
+
+### 📋 Prerequisites
+- Node.js ≥ 18.0.0
+- Rust ≥ 1.70.0
+- DFX ≥ 0.28.0
+- Python 3.8+
+
+### ⌨️ Commands
+- `make dev` - Start development environment
+- `make build` - Build all components  
+- `make test` - Run test suite
+- `make deploy` - Deploy to configured network
+
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for detailed setup and contribution guidelines.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make changes with appropriate tests
+4. Update documentation if needed
+5. Submit a pull request
 
 ## 📄 License
 
-Copyright (c) 2025
+Copyright (c) 2025 - Muhammad Rafly Ash Shiddiqi, Nickolas Quinn Budiyono, Christopher Robin Tanugroho
 
--   Muhammad Rafly Ash Shiddiqi
--   Nickolas Quinn Budiyono
--   Christopher Robin Tanugroho
+---
+
+**🌐 Built on Internet Computer Protocol**

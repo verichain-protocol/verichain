@@ -2,7 +2,6 @@
   "canisters": {
     "internet_identity": {
       "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
-      "frontend": {},
       "remote": {
         "id": {
           "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
@@ -22,7 +21,7 @@
       "workspace": "frontend"
     },
     "ai_canister": {
-      "candid": "src/ai_canister/src/ai_canister.did",
+      "candid": "src/ai_canister/ai_canister.did",
       "type": "rust",
       "package": "ai_canister"
     },
@@ -33,8 +32,8 @@
   },
   "defaults": {
     "build": {
-      "packtool": "mops sources",
-      "args": ""
+      "args": "",
+      "packtool": "mops sources"
     }
   },
   "output_env_file": ".env",

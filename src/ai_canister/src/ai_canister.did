@@ -1,4 +1,0 @@
-// This is the public interface for the AI canister.
-service : {
-  "verify": (blob) -> (text, float32) query;
-}

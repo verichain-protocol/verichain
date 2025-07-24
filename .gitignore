@@ -1,17 +1,20 @@
-# Various IDEs and Editors
+# VeriChain .gitignore - Blockchain Project
+
+# IDEs and Editors
 .vscode/
 .idea/
-**/*~
+*.swp
+*.swo
+*~
 
-# OS-specific temporary files
+# OS-specific files
 .DS_Store
-**/.DS_Store
 Thumbs.db
 
 # DFX temporary files
 .dfx/
 
-# Auto-generated files
+# Auto-generated declarations  
 **/declarations/
 
 # Rust build artifacts
@@ -20,16 +23,79 @@ target/
 # Frontend build artifacts and dependencies
 node_modules/
 dist/
-.svelte-kit/
+build/
+.parcel-cache/
 
 # Environment variables
 .env
+.env.local
+.env.development
+.env.staging
+.env.production
+# Allow example templates
+!.env.example
 
-# Motoko package manager cache
+# Motoko package manager
 .mops/
 mops.lock
+.vessel/
 
-# Log files
+# AI model binaries (large files) - downloaded/generated automatically
+src/ai_canister/assets/*.onnx
+src/ai_canister/assets/*.bin
+src/ai_canister/assets/*.pt
+src/ai_canister/assets/*.h5
+src/ai_canister/assets/*.tflite
+src/ai_canister/assets/model_chunk_*.bin
+
+# Keep metadata and config files - these are needed for development
+!src/ai_canister/assets/*_config.json
+!src/ai_canister/assets/model_metadata.json
+!src/ai_canister/assets/*.json
+!src/ai_canister/assets/*.yaml
+!src/ai_canister/assets/*.toml
+!src/ai_canister/assets/*.json
+
+# Logs and temporary files
 *.log
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
+nohup.out
+
+# Cache directories
+.cache/
+.cargo/registry/cache/
+.rustup/
+.npm/
+
+# Testing artifacts
+coverage/
+.nyc_output/
+junit.xml
+test-results/
+
+# Backup files
+*.bak
+*.tmp
+*.temp
+
+# Documentation build artifacts  
+docs/build/
+site/
+
+# Runtime artifacts
+*.pid
+*.seed
+*.pid.lock
+
+# Distribution packages
+*.tar.gz
+verichain-dist.tar.gz
+
+# macOS specific
+.AppleDouble
+.LSOverride
+
+# Docker volumes and cache
+.docker/
