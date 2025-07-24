@@ -2,10 +2,11 @@
 
 ## Quick Setup
 
+Clone the repository and run the setup command:
 ```bash
 git clone https://github.com/verichain-protocol/verichain.git
 cd verichain
-make setup  # One command - handles everything automatically
+make setup
 ```
 
 ## Prerequisites
@@ -13,113 +14,92 @@ make setup  # One command - handles everything automatically
 - **Node.js** ≥ 18.0.0
 - **Rust** ≥ 1.70.0 
 - **DFX** ≥ 0.28.0
-- **Python** 3.8+ (for model tools)
+- **Python** 3.8+
 
-## Development Commands
+## Commands
 
-```bash
-# Development
-make dev          # Start development environment
-make build        # Build all components
-make deploy       # Deploy to local network
-make test-health  # Quick health check
-
-# Model operations
-make model-setup  # Setup AI model
-make upload-model # Upload new model chunks
-
-# Troubleshooting
-make reset-setup  # Complete reset
-make clean-setup  # Clean reset (keeps dependencies)
-make status       # Check what's running
-```
+- `make dev` - Start development environment
+- `make build` - Build all components
+- `make deploy` - Deploy to configured network
+- `make test` - Run test suite
+- `make model-setup` - Download and setup AI model
+- `make upload-model` - Upload model chunks to canister
+- `make reset-setup` - Complete reset
+- `make clean-setup` - Clean while preserving dependencies
+- `make status` - Check system status
 
 ## Project Structure
 
 ```
 verichain/
 ├── src/
-│   ├── ai_canister/        # Rust - AI processing engine
-│   ├── logic_canister/     # Motoko - Business logic & user management
-│   └── frontend/           # TypeScript React - User interface
-├── scripts/                # Build automation scripts
-│   ├── setup.sh           # Main setup script
-│   ├── build.sh           # Build all components
-│   ├── deploy.sh          # Deploy to ICP
+│   ├── ai_canister/        # Rust - AI processing with ONNX model
+│   ├── logic_canister/     # Motoko - User management and business logic
+│   └── frontend/           # TypeScript React - Web interface
+├── scripts/                # Build automation
+│   ├── setup.sh           # Complete project setup
+│   ├── build.sh           # Component build orchestration
+│   ├── deploy.sh          # Multi-network deployment
 │   ├── dev.sh             # Development server
-│   ├── test.sh            # Run tests
-│   ├── clean-setup.sh     # Clean setup (keeps deps)
-│   └── reset-setup.sh     # Complete reset
-├── tools/                  # Utility tools
+│   └── test.sh            # Test execution
+├── tools/                  # Utilities
 │   └── model_chunker.py   # AI model chunking for ICP
-├── test-files/             # Test assets
-│   └── sample-image.jpg   # Sample test image
 ├── docs/                   # Documentation
-├── target/                 # Rust build artifacts
-├── .dfx/                   # DFX local network data
-├── node_modules/           # Node.js dependencies
-├── Makefile               # Build automation commands
-├── dfx.json               # Internet Computer configuration
-├── Cargo.toml             # Rust workspace configuration
-├── package.json           # Node.js project configuration
-├── docker-compose.yml     # Docker development setup
-└── mops.toml              # Motoko package manager
+├── Makefile               # Command interface
+├── dfx.json               # ICP configuration
+└── Cargo.toml             # Rust workspace
 ```
 
-## Frontend Development
+## Components
 
-Built with TypeScript + React + Vite:
+### AI Canister (Rust)
+- ONNX model inference engine
+- Image preprocessing and analysis
+- Chunked model storage for ICP deployment
 
-```typescript
-// Real canister integration
-import { CoreAIService } from './services/coreAI.service';
-const aiService = new CoreAIService();
-const result = await aiService.analyzeImage(imageFile);
-```
+### Logic Canister (Motoko)
+- User authentication and management
+- Quota tracking and tier enforcement
+- API endpoints and business logic
 
-Structure:
-```
-src/frontend/src/
-├── components/     # React components
-├── services/       # Canister integration
-├── types/          # TypeScript definitions
-└── utils/          # Helper functions
-```
+### Frontend (TypeScript + React)
+- Modern web interface built with Vite
+- Real-time canister integration
+- Responsive design with Tailwind CSS
 
-## Configuration
+## Development Workflow
 
-```bash
-# Environment setup
-cp .env.example .env
+### Environment Setup
+Copy the environment template and configure settings as needed.
 
-# Key settings
-MODEL_CHUNK_SIZE_MB=0.8
-DEPLOY_NETWORK=local
-NODE_ENV=development
-```
+### Frontend Development
+The frontend uses TypeScript with React and integrates directly with canisters through generated service interfaces.
 
-## Testing
+Frontend structure includes components, services for canister integration, TypeScript type definitions, and utility functions.
 
-```bash
-make test-health      # Quick health check
-make test-model       # Model integrity
-make test-performance # Performance testing
-make integration-test # Full integration
-```
+### Testing
+Multiple test types are available including complete test suite, quick health checks, and model functionality tests.
 
 ## Common Issues
 
-**Model not loading**: `make setup-model-complete`  
-**Build failures**: `make clean && make build`  
-**Frontend issues**: `dfx generate && cd src/frontend && npm start`
+**Model loading fails**: Run `make model-setup`  
+**Build errors**: Try `make clean && make build`  
+**Frontend issues**: Run `dfx generate` and restart frontend server  
+**Canister deployment fails**: Check `make status` and verify DFX is running
 
 ## Contributing
 
-1. Create feature branch
-2. Make changes with tests
-3. Update docs if needed
-4. Submit pull request
-5. Address review feedback
+1. Fork the repository
+2. Create a feature branch
+3. Implement changes with tests
+4. Update documentation if needed
+5. Submit pull request
+
+### Code Standards
+- Follow existing code style
+- Add tests for new features
+- Update documentation
+- Use meaningful commit messages
 
 ---
 
