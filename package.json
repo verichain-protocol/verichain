@@ -1,0 +1,44 @@
+{
+  "name": "verichain",
+  "version": "1.0.0",
+  "description": "Blockchain-powered deepfake detection platform built on Internet Computer Protocol",
+  "keywords": [
+    "deepfake",
+    "detection",
+    "ai",
+    "blockchain",
+    "internet-computer",
+    "onnx",
+    "vision-transformer"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "VeriChain Team",
+    "email": "team@verichain.ai"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/verichain-protocol/verichain.git"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=7.0.0"
+  },
+  "scripts": {
+    "setup": "./scripts/setup.sh",
+    "build": "./scripts/build.sh",
+    "test": "./scripts/test.sh",
+    "start": "npm start --workspace=frontend",
+    "dev": "make dev",
+    "clean": "make clean",
+    "prebuild": "npm run prebuild --workspaces --if-present",
+    "pretest": "npm run prebuild --workspaces --if-present"
+  },
+  "workspaces": [
+    "src/frontend"
+  ],
+  "type": "module",
+  "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.11.6"
+  }
+}

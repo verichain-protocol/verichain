@@ -1,0 +1,85 @@
+type AnalysisResult = record {
+  prediction: text;
+  confidence: float64;
+  processing_time_ms: nat64;
+  metadata: opt text;
+};
+
+type PredictionLabel = variant {
+  Real;
+  AIGenerated;
+  Deepfake;
+};
+
+type PredictionResult = record {
+  label: PredictionLabel;
+  confidence: float64;
+  raw_scores: record {
+    real: float64;
+    ai_generated: float64;
+    deepfake: float64;
+  };
+};
+
+type MediaAnalysisResult = record {
+  prediction: PredictionResult;
+  processing_time_ms: nat64;
+  input_size: nat32;
+  model_version: text;
+  processed_at: nat64;
+};
+
+type ModelInfo = record {
+  version: text;
+  input_size: record { nat32; nat32 };
+  supported_formats: vec text;
+  model_loaded: bool;
+  total_parameters: opt nat64;
+};
+
+type SystemHealth = record {
+  status: text;
+  model_loaded: bool;
+  uptime_seconds: nat64;
+  memory_usage_mb: float64;
+  cycle_balance: nat64;
+};
+
+type UploadStatus = record {
+  total_chunks: nat32;
+  uploaded_chunks: nat32;
+  missing_chunks: vec nat32;
+  is_complete: bool;
+  original_size_mb: float64;
+};
+
+type InitializationStatus = record {
+  is_initialized: bool;
+  initialization_started: bool;
+  processed_chunks: nat32;
+  total_chunks: nat32;
+  current_size_mb: float64;
+  estimated_total_size_mb: float64;
+  error_message: opt text;
+};
+
+service : {
+  // Main analysis function
+  analyze: (vec nat8) -> (variant { Ok: MediaAnalysisResult; Err: text });
+  
+  // Model management
+  upload_model_chunk: (nat32, vec nat8, text) -> (variant { Ok: text; Err: text });
+  upload_model_metadata: (text, nat64, nat32, nat32) -> (variant { Ok: text; Err: text });
+  initialize_model: () -> (variant { Ok: text; Err: text });
+  continue_initialization: (opt nat32) -> (variant { Ok: text; Err: text });
+  
+  // Status and info
+  get_upload_status: () -> (UploadStatus) query;
+  get_initialization_status: () -> (InitializationStatus) query;
+  get_model_info: () -> (ModelInfo) query;
+  health_check: () -> (SystemHealth) query;
+  
+  // Utilities
+  validate_image_format: (vec nat8) -> (bool) query;
+  get_supported_formats: () -> (vec text) query;
+}
