@@ -1,6 +1,6 @@
-# VeriChain Development Guide
+# 💻 VeriChain Development Guide
 
-## Quick Setup
+## 🚀 Quick Setup
 
 Clone the repository and run the setup command:
 ```bash
@@ -9,14 +9,14 @@ cd verichain
 make setup
 ```
 
-## Prerequisites
+## 📋 Prerequisites
 
 - **Node.js** ≥ 18.0.0
 - **Rust** ≥ 1.70.0 
 - **DFX** ≥ 0.28.0
 - **Python** 3.8+
 
-## Commands
+## ⌨️ Commands
 
 - `make dev` - Start development environment
 - `make build` - Build all components
@@ -28,7 +28,7 @@ make setup
 - `make clean-setup` - Clean while preserving dependencies
 - `make status` - Check system status
 
-## Project Structure
+## 🏗️ Project Structure
 
 ```
 verichain/
@@ -50,44 +50,44 @@ verichain/
 └── Cargo.toml             # Rust workspace
 ```
 
-## Components
+## 🛠️ Components
 
-### AI Canister (Rust)
+### 🤖 AI Canister (Rust)
 - ONNX model inference engine
 - Image preprocessing and analysis
 - Chunked model storage for ICP deployment
 
-### Logic Canister (Motoko)
+### ⚙️ Logic Canister (Motoko)
 - User authentication and management
 - Quota tracking and tier enforcement
 - API endpoints and business logic
 
-### Frontend (TypeScript + React)
+### 🌐 Frontend (TypeScript + React)
 - Modern web interface built with Vite
 - Real-time canister integration
 - Responsive design with Tailwind CSS
 
-## Development Workflow
+## 🔄 Development Workflow
 
-### Environment Setup
+### 🔧 Environment Setup
 Copy the environment template and configure settings as needed.
 
-### Frontend Development
+### 💻 Frontend Development
 The frontend uses TypeScript with React and integrates directly with canisters through generated service interfaces.
 
 Frontend structure includes components, services for canister integration, TypeScript type definitions, and utility functions.
 
-### Testing
+### 🧪 Testing
 Multiple test types are available including complete test suite, quick health checks, and model functionality tests.
 
-## Common Issues
+## ⚠️ Common Issues
 
 **Model loading fails**: Run `make model-setup`  
 **Build errors**: Try `make clean && make build`  
 **Frontend issues**: Run `dfx generate` and restart frontend server  
 **Canister deployment fails**: Check `make status` and verify DFX is running
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -95,7 +95,7 @@ Multiple test types are available including complete test suite, quick health ch
 4. Update documentation if needed
 5. Submit pull request
 
-### Code Standards
+### 📝 Code Standards
 - Follow existing code style
 - Add tests for new features
 - Update documentation
@@ -103,4 +103,4 @@ Multiple test types are available including complete test suite, quick health ch
 
 ---
 
-**For API details see [API.md](API.md) | For model specs see [MODEL.md](MODEL.md)**
+**📚 For API details see [API.md](API.md) | For model specs see [MODEL.md](MODEL.md)**
