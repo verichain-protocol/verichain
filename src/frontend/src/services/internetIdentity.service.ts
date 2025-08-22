@@ -46,7 +46,7 @@ export class InternetIdentityService {
       }
 
       const identityProvider = import.meta.env.DFX_NETWORK === 'local' 
-        ? 'http://localhost:4943?canisterId=rrkah-fqaaa-aaaaa-aaaaq-cai' // Standard local Internet Identity canister ID
+        ? `http://localhost:4943?canisterId=${import.meta.env.CANISTER_ID_INTERNET_IDENTITY}` // Use the actual local Internet Identity canister ID
         : 'https://identity.ic0.app'; // Production Internet Identity
 
       return new Promise((resolve) => {

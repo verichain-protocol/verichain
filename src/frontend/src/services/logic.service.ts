@@ -6,7 +6,6 @@ import { createActor } from '../../../declarations/logic_canister';
 import { Principal } from '@dfinity/principal';
 import { internetIdentityService } from './internetIdentity.service';
 
-// Browser polyfill for global object
 (globalThis as any).global = globalThis;
 if (typeof window !== 'undefined') {
   (window as any).global = window;

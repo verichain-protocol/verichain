@@ -279,30 +279,6 @@ export default function Dashboard(): ReactElement {
           <h1 className="text-lime-500 text-base xs:text-lg sm:text-xl md:text-2xl font-bold px-1">
             Media Verification
           </h1>
-
-          {/* Authentication Status */}
-          <div className="flex items-center space-x-2">
-            {isAuthenticated ? (
-              <div className="flex items-center space-x-2">
-                <span className="text-green-500 text-xs xs:text-sm">
-                  {quotaStatus ? `${quotaStatus.remaining}/${quotaStatus.total} left` : "Authenticated"}
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="text-xs xs:text-sm text-gray-400 hover:text-white transition-colors"
-                >
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleLogin}
-                className="text-xs xs:text-sm text-lime-500 hover:text-lime-400 transition-colors"
-              >
-                Login for More Quota
-              </button>
-            )}
-          </div>
         </div>
 
         {/* Quota Warning */}
