@@ -7,6 +7,7 @@ import Verify from "./pages/dashboard/partials/verify";
 import MyAssets from "./pages/dashboard/partials/myassests";
 import FAQ from "./pages/dashboard/partials/faq";
 import AuthProvider from "./core/providers/auth-provider";
+import Register from "./pages/auth/register";
 
 function App() {
 
@@ -16,6 +17,7 @@ function App() {
           <Routes>
               <Route path="/" element={<HomePage/>} />
               <Route path="/History" element={<HistoryPage/>} />
+              <Route path="/Register" element={<Register/>} />
               <Route path="/Dashboard" element={<DashboardLayout/>}>
                 <Route index element={<Verify/>} />
                 <Route path="MyAssests" element={<MyAssets/>} />

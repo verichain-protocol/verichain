@@ -14,6 +14,32 @@ export function getInternetIdentityNetwork(): string | null {
   }
 }
 
+// Debug utility for checking localStorage
+export function debugLocalStorage(): void {
+  console.log('🔍 localStorage Debug Info:');
+  console.log('Principal:', localStorage.getItem('verichain_user_principal'));
+  console.log('User Data:', localStorage.getItem('verichain_user_data'));
+  console.log('Auth State:', localStorage.getItem('verichain_auth_state'));
+  
+  try {
+    const userData = localStorage.getItem('verichain_user_data');
+    if (userData) {
+      const parsed = JSON.parse(userData);
+      console.log('Parsed User Data:', parsed);
+      const sessionAge = Date.now() - parsed.timestamp;
+      const hoursAgo = Math.floor(sessionAge / (1000 * 60 * 60));
+      console.log(`Session created ${hoursAgo} hours ago`);
+    }
+  } catch (error) {
+    console.error('Error parsing user data:', error);
+  }
+}
+
+// Utility to expose debugging function globally (for browser console)
+if (typeof window !== 'undefined') {
+  (window as any).debugVeriChainStorage = debugLocalStorage;
+}
+
 export function jsonStringify(data: any): string {
   return JSON.stringify(data, (_, v) => (typeof v === "bigint" ? v.toString() : v));
 }
