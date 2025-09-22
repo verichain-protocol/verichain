@@ -33,10 +33,14 @@ export interface QuotaStatus {
 export class LogicService {
   private actor: any = null;
   private agent: HttpAgent | null = null;
-  private canisterId: string = import.meta.env.CANISTER_ID_LOGIC_CANISTER || 'umunu-kh777-77774-qaaca-cai';
+  private canisterId: string;
   private currentPrincipal: Principal | null = null;
 
   constructor() {
+    // Get canister ID with fallback
+    this.canisterId = import.meta.env.CANISTER_ID_LOGIC_CANISTER || 'br5f7-7uaaa-aaaaa-qaaca-cai';
+    console.log('🏗️ LogicService initialized with canister ID:', this.canisterId);
+    
     this.initializeAgent();
     
     // Subscribe to Internet Identity auth state changes
@@ -55,19 +59,11 @@ export class LogicService {
    * Update actor with current authentication
    */
   private async updateActorWithAuth(): Promise<void> {
-    if (!this.agent) {
-      await this.initializeAgent();
-    }
-    
-    if (this.agent) {
-      this.actor = createActor(this.canisterId, {
-        agent: this.agent,
-      });
-    }
+    await this.initializeAgent();
   }
 
   /**
-   * Initialize HTTP agent and actor
+   * Initialize HTTP agent and actor with proper identity
    */
   private async initializeAgent(): Promise<void> {
     try {
@@ -75,16 +71,45 @@ export class LogicService {
         ? 'http://localhost:4943' 
         : 'https://ic0.app';
 
-      this.agent = new HttpAgent({ host });
+      console.log('🔧 Initializing LogicService agent...');
+      console.log('Host:', host);
+      console.log('Canister ID:', this.canisterId);
+      console.log('Network:', import.meta.env.DFX_NETWORK);
+
+      // Get current identity from Internet Identity service
+      let identity = null;
+      const authState = internetIdentityService.getAuthState();
+      
+      if (authState.isAuthenticated && authState.identity) {
+        identity = authState.identity;
+        console.log('✅ Using authenticated identity:', authState.principal);
+      } else {
+        console.log('⚠️ No authenticated identity found, using anonymous');
+      }
+
+      // Create agent with or without identity
+      const agentConfig: any = { 
+        host,
+        verifyQuerySignatures: false // For local development
+      };
+      
+      if (identity) {
+        agentConfig.identity = identity;
+      }
+
+      this.agent = new HttpAgent(agentConfig);
 
       // Fetch root key for local development
       if (import.meta.env.DFX_NETWORK === 'local') {
         await this.agent.fetchRootKey();
+        console.log('✅ Root key fetched for local development');
       }
 
       this.actor = createActor(this.canisterId, {
         agent: this.agent,
       });
+      
+      console.log('✅ LogicService agent initialized successfully with identity:', !!identity);
 
     } catch (error) {
       console.error('❌ Failed to initialize Logic agent:', error);
@@ -114,22 +139,67 @@ export class LogicService {
    * Register a new user
    */
   async register(fullName: string, email: string): Promise<{ success: boolean; error?: string }> {
-    await this.ensureActor();
+    console.log('🔧 Starting logic service registration...');
     
     try {
+      // Force re-initialize agent with current authentication
+      await this.initializeAgent();
+      
+      if (!this.actor) {
+        console.error('❌ Actor not initialized');
+        return { success: false, error: 'Service not initialized' };
+      }
+      
+      // Verify we have authentication
+      const authState = internetIdentityService.getAuthState();
+      if (!authState.isAuthenticated || !authState.principal) {
+        console.error('❌ No authenticated user found');
+        return { success: false, error: 'User must be authenticated to register' };
+      }
+      
+      console.log('✅ Actor ready with authenticated user:', authState.principal);
+      console.log('📋 Registration payload:', { fullName, email });
+      
       const result = await this.actor.register({
         fullName,
         email
       });
+      
+      console.log('📊 Raw registration result:', result);
+      console.log('📊 Result type:', typeof result);
+      console.log('📊 Result keys:', Object.keys(result || {}));
 
-      if ('Ok' in result) {
+      // Handle both uppercase and lowercase response formats
+      if ('Ok' in result || 'ok' in result) {
+        console.log('✅ Registration successful in logic canister');
+        console.log('📋 Success response:', result.Ok || result.ok);
         return { success: true };
+      } else if ('Err' in result || 'err' in result) {
+        const errorMsg = result.Err || result.err;
+        console.error('❌ Registration rejected by canister:', errorMsg);
+        return { success: false, error: errorMsg };
       } else {
-        return { success: false, error: result.Err };
+        console.error('❌ Unexpected response format:', result);
+        console.error('📊 Full response object:', JSON.stringify(result, null, 2));
+        return { success: false, error: 'Unexpected response format' };
       }
     } catch (error) {
-      console.error('❌ Registration failed:', error);
-      return { success: false, error: 'Registration failed' };
+      console.error('❌ Registration request failed:', error);
+      
+      // More specific error handling
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          return { success: false, error: 'Network connection failed. Please check your internet connection.' };
+        } else if (error.message.includes('agent')) {
+          return { success: false, error: 'Canister connection failed. Please try again.' };
+        } else if (error.message.includes('ANONYMOUS')) {
+          return { success: false, error: 'Authentication required. Please ensure you are logged in.' };
+        } else {
+          return { success: false, error: `Registration failed: ${error.message}` };
+        }
+      }
+      
+      return { success: false, error: 'Registration failed. Please try again.' };
     }
   }
 
@@ -142,11 +212,14 @@ export class LogicService {
     try {
       const result = await this.actor.login();
 
-      if ('Ok' in result) {
-        const user = result.Ok;
+      if ('Ok' in result || 'ok' in result) {
+        const user = result.Ok || result.ok;
         return { success: true, user };
+      } else if ('Err' in result || 'err' in result) {
+        const errorMsg = result.Err || result.err;
+        return { success: false, error: errorMsg };
       } else {
-        return { success: false, error: result.Err };
+        return { success: false, error: 'Unexpected response format' };
       }
     } catch (error) {
       console.error('❌ Login failed:', error);
@@ -163,10 +236,14 @@ export class LogicService {
     try {
       const result = await this.actor.getUser();
 
-      if ('Ok' in result) {
-        return { success: true, user: result.Ok };
+      if ('Ok' in result || 'ok' in result) {
+        const user = result.Ok || result.ok;
+        return { success: true, user };
+      } else if ('Err' in result || 'err' in result) {
+        const errorMsg = result.Err || result.err;
+        return { success: false, error: errorMsg };
       } else {
-        return { success: false, error: result.Err };
+        return { success: false, error: 'Unexpected response format' };
       }
     } catch (error) {
       console.error('❌ Failed to get user:', error);

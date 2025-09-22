@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { IoMdMenu } from "react-icons/io";
@@ -7,9 +5,12 @@ import { MdCancel } from "react-icons/md";
 import { FaUser, FaSignOutAlt } from "react-icons/fa";
 import Logo from "../../assets/Logo.png";
 import { useAuth } from "../../core/providers/auth-provider";
+import { logicService } from "../../services/logic.service";
+import { internetIdentityService } from "../../services/internetIdentity.service";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCheckingRegistration, setIsCheckingRegistration] = useState(false);
   const location = useLocation();
   const currentPath = location.pathname;
   const { login, logout, isAuthenticated, user } = useAuth();
@@ -18,6 +19,43 @@ const Navbar = () => {
   const handleLogout = async () => {
     await logout();
     navigate("/");
+  };
+
+  const handleSmartLogin = async () => {
+    setIsCheckingRegistration(true);
+    
+    try {
+      console.log('🔍 Checking user registration status...');
+      
+      // First, try to authenticate with Internet Identity to get principal
+      const authResult = await internetIdentityService.login();
+      
+      if (!authResult.success) {
+        console.log('❌ Authentication failed, redirecting to register');
+        navigate('/Register');
+        return;
+      }
+      
+      console.log('✅ Authentication successful, checking if user is registered...');
+      
+      // Check if user exists in the system
+      const userResult = await logicService.getUser();
+      
+      if (userResult.success && userResult.user) {
+        console.log('✅ User is registered, proceeding to Dashboard');
+        navigate('/Dashboard');
+      } else {
+        console.log('📝 User not registered, redirecting to Register form');
+        navigate('/Register');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error during smart login:', error);
+      // Fallback to register page
+      navigate('/Register');
+    } finally {
+      setIsCheckingRegistration(false);
+    }
   };
 
   const toggleMenu = () => {
@@ -101,10 +139,18 @@ const Navbar = () => {
               </>
             ) : (
               <button
-                onClick={login}
-                className="border-lime-400 border-[1px] px-7 py-1 rounded-full text-lime-400 hover:bg-lime-400 hover:text-gray-900 bg-transparent transition-all duration-300"
+                onClick={handleSmartLogin}
+                disabled={isCheckingRegistration}
+                className="bg-lime-400 text-gray-900 px-7 py-2 rounded-full hover:bg-lime-300 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
-                Login
+                {isCheckingRegistration ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                    <span>Checking...</span>
+                  </>
+                ) : (
+                  <span>Login</span>
+                )}
               </button>
             )}
           </div>
@@ -181,13 +227,21 @@ const Navbar = () => {
               </div>
             ) : (
               <button
-                className="w-full mt-4 border-lime-400 border-[1px] px-7 py-2 rounded-full text-lime-400 hover:bg-lime-400 hover:text-gray-900 bg-transparent transition-all duration-300"
+                className="w-full bg-lime-400 text-gray-900 px-7 py-2 rounded-full hover:bg-lime-300 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                disabled={isCheckingRegistration}
                 onClick={() => {
-                  login();
+                  handleSmartLogin();
                   setIsMenuOpen(false);
                 }}
               >
-                Login
+                {isCheckingRegistration ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                    <span>Checking...</span>
+                  </>
+                ) : (
+                  <span>Login</span>
+                )}
               </button>
             )}
           </nav>

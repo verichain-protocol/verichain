@@ -1,8 +1,52 @@
 import { FaChevronDown } from "react-icons/fa"
+import { useNavigate } from "react-router-dom"
+import { useState } from "react"
 import { Typewriter } from "../../../components/typewriter/typewriter"
-import JumbotronImg from "../../../assets/JumbotronImg.png"; 
+import JumbotronImg from "../../../assets/JumbotronImg.png"
+import { logicService } from "../../../services/logic.service"
+import { internetIdentityService } from "../../../services/internetIdentity.service"
 
 const JumbotronPage = () => {
+  const navigate = useNavigate();
+  const [isCheckingRegistration, setIsCheckingRegistration] = useState(false);
+
+  const handleSmartLogin = async () => {
+    setIsCheckingRegistration(true);
+    
+    try {
+      console.log('🔍 Checking user registration status...');
+      
+      // First, try to authenticate with Internet Identity to get principal
+      const authResult = await internetIdentityService.login();
+      
+      if (!authResult.success) {
+        console.log('❌ Authentication failed, redirecting to register');
+        navigate('/Register');
+        return;
+      }
+      
+      console.log('✅ Authentication successful, checking if user is registered...');
+      
+      // Check if user exists in the system
+      const userResult = await logicService.getUser();
+      
+      if (userResult.success && userResult.user) {
+        console.log('✅ User is registered, proceeding to Dashboard');
+        navigate('/Dashboard');
+      } else {
+        console.log('📝 User not registered, redirecting to Register form');
+        navigate('/Register');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error during smart login:', error);
+      // Fallback to register page
+      navigate('/Register');
+    } finally {
+      setIsCheckingRegistration(false);
+    }
+  };
+
   return (
     <section className="px-4 sm:px-6 py-12 sm:py-16 md:py-20 lg:py-24">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 md:gap-16 lg:gap-20 items-center">
@@ -27,9 +71,22 @@ const JumbotronPage = () => {
           </p>
 
           {/* CTA Button */}
-          <button className="bg-lime-400 text-gray-900 hover:bg-lime-500 px-6 sm:px-7 md:px-8 py-2.5 sm:py-3 rounded-full font-semibold flex items-center text-sm sm:text-base transition-colors duration-200 w-full sm:w-auto justify-center sm:justify-start">
-            Get Started
-            <FaChevronDown className="ml-2 w-3 h-3 sm:w-4 sm:h-4" />
+          <button 
+            onClick={handleSmartLogin}
+            disabled={isCheckingRegistration}
+            className="bg-lime-400 text-gray-900 hover:bg-lime-500 px-6 sm:px-7 md:px-8 py-2.5 sm:py-3 rounded-full font-semibold flex items-center text-sm sm:text-base transition-colors duration-200 w-full sm:w-auto justify-center sm:justify-start disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isCheckingRegistration ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 mr-2"></div>
+                <span>Checking...</span>
+              </>
+            ) : (
+              <>
+                <span>Get Started</span>
+                <FaChevronDown className="ml-2 w-3 h-3 sm:w-4 sm:h-4" />
+              </>
+            )}
           </button>
         </div>
 
