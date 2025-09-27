@@ -1,10 +1,9 @@
 import Principal "mo:base/Principal";
-import Types "../types/Types";
+import Types "../types/types";
 
 module {
   public type User = Types.User;
-
-  public type StorageInterface = {
+  public type UserStorageInterface = {
     // User operations
     getUser: (Principal) -> ?User;
     putUser: (Principal, User) -> ();
@@ -28,5 +27,12 @@ module {
     getUsersForStorage: () -> [(Principal, User)];
     getAdminsForStorage: () -> [Principal];
     getAnonUsageForStorage: () -> [(Text, Nat)];
+  };  
+
+  public type History = Types.DetectionHistory;
+  public type ApiHistoryInterface = {
+    saveHistory: (Principal, History) -> ();
+    getHistoryByPrincipal: (Principal) -> ?[History];
   };
+
 }

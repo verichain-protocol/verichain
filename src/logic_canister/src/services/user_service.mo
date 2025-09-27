@@ -1,9 +1,9 @@
 import Principal "mo:base/Principal";
-import Types "../types/Types";
-import ErrorCodes "../types/Errors";
-import QuotaUtils "../utils/QuotaUtils";
-import ValidationUtils "../utils/ValidationUtils";
-import StorageInterface "../storage/StorageInterface";
+import Types "../types/types";
+import ErrorCodes "../types/errors";
+import QuotaUtils "../utils/quota_utils";
+import ValidationUtils "../utils/validation_utils";
+import Storage "../storage/storage_interface";
 
 module {
   public type User = Types.User;
@@ -14,7 +14,7 @@ module {
   public type TierType = Types.TierType;
   public type UserQuota = Types.UserQuota;
 
-  public class UserService(storage : StorageInterface.StorageInterface) {
+  public class UserService(storage : Storage.UserStorageInterface) {
 
     public func login(caller : Principal) : Response<User> {
       if (Principal.isAnonymous(caller)) {

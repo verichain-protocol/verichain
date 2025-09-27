@@ -1,13 +1,15 @@
 import Principal "mo:base/Principal";
 
-import Types "types/Types";
-import UserStorage "storage/UserStorage";
-import UserService "services/UserService";
-import AdminService "services/AdminService";
-import ApiService "services/ApiService";
+import Types "types/types";
+import UserStorage "storage/user_storage";
+import ApiHistoryStorage "storage/api_storage";
+import UserService "services/user_service";
+import AdminService "services/admin_service";
+import ApiService "services/api_service";
 
-actor Verichain {
+persistent actor Verichain {
     public type User = Types.User;
+    public type History = Types.DetectionHistory;
     public type RegisterParams = Types.RegisterParams;
     public type GetUserResponse = Types.GetUserResponse;
     public type QuotaStatusResponse = Types.QuotaStatusResponse;
@@ -15,16 +17,18 @@ actor Verichain {
     public type Response<T> = Types.Response<T>;
     public type TierType = Types.TierType;
 
-    stable var usersStorage : [(Principal, User)] = [];
-    stable var adminStorage : [Principal] = [];
-    stable var anonUsageStorage : [(Text, Nat)] = [];
+    var usersStorage : [(Principal, User)] = [];
+    var adminStorage : [Principal] = [];
+    var anonUsageStorage : [(Text, Nat)] = [];
+    var apiStorage :  [(Principal, [History])] = [];
 
-    private var storage = UserStorage.UserStorage(usersStorage, adminStorage, anonUsageStorage);
+    private transient var userStorage = UserStorage.UserStorage(usersStorage, adminStorage, anonUsageStorage);
+    private transient var apiHistoryStorage = ApiHistoryStorage.ApiHistoryStorage(apiStorage);
 
     // Initialize services
-    private let userService = UserService.UserService(storage);
-    private let adminService = AdminService.AdminService(storage);
-    private let apiService = ApiService.ApiService(storage);
+    private transient let userService = UserService.UserService(userStorage);
+    private transient let adminService = AdminService.AdminService(userStorage);
+    private transient let apiService = ApiService.ApiService(userStorage, apiHistoryStorage);
 
     // === USER ENDPOINTS ===
 
@@ -114,7 +118,6 @@ actor Verichain {
 
         // Login (create user if not exists)
         ignore userService.login(msg.caller);
-
         // Register
         let registerResult = userService.register(msg.caller, { fullName = fullName; email = email });
         switch (registerResult) {
@@ -135,12 +138,14 @@ actor Verichain {
     // === PERSISTENCE ===
 
     system func preupgrade() {
-        usersStorage := storage.getUsersForStorage();
-        adminStorage := storage.getAdminsForStorage();
-        anonUsageStorage := storage.getAnonUsageForStorage();
+        usersStorage := userStorage.getUsersForStorage();
+        adminStorage := userStorage.getAdminsForStorage();
+        anonUsageStorage := userStorage.getAnonUsageForStorage();
+        apiStorage := apiHistoryStorage.getApiHistoryForStorage();
     };
 
     system func postupgrade() {
-        storage := UserStorage.UserStorage(usersStorage, adminStorage, anonUsageStorage);
+        userStorage := UserStorage.UserStorage(usersStorage, adminStorage, anonUsageStorage);
+        apiHistoryStorage := ApiHistoryStorage.ApiHistoryStorage(apiStorage);
     };
 };

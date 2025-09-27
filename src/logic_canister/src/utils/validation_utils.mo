@@ -1,6 +1,6 @@
 import Text "mo:base/Text";
-import Types "../types/Types";
-import ErrorCodes "../types/Errors";
+import Types "../types/types";
+import ErrorCodes "../types/errors";
 
 module {
   public type ValidationResult = Types.ValidationResult;

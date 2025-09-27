@@ -1,6 +1,8 @@
 import Result "mo:base/Result";
+// import Sha256 "mo:sha2/Sha256";
 
 module {
+  public type Hash32 = Blob;
   public type TierType = {
     #anonymous;
     #authenticated;
@@ -27,6 +29,36 @@ module {
     isRegistered : Bool;
     quota : UserQuota;
   };
+  
+  public type AIDetection = {
+    facesDetected: Nat;
+    deepfakeLikelihood: Float;
+    modelUsed: Text;
+  };
+
+  public type DetectionHistory = {
+    txHash: Hash32;         
+    uploadedAt: Text;         
+    uploadedBy: Principal;   
+    fileName: ?Text;
+    chainStatus: ?Text;
+    storageCanister: Principal;
+    accessPath: Text;        
+    ai: AIDetection;
+    createdAt: Int; // timestamp
+  };
+  
+    public type SaveHistoryParams = {
+    uploadedBy: Principal;
+    uploadedAt: Text;   
+    fileName: Text;
+    chainStatus: Text;
+    storageCanister: Principal;
+    accessPath: Text;        
+    facesDetected: Nat;
+    deepfakeLikelihood: Float;
+    modelUsed: Text;
+  };
 
   public type RegisterParams = {
     fullName : Text;
@@ -47,6 +79,7 @@ module {
     monthlyLimit : Nat;
   };
 
+
   public type SystemStatsResponse = {
     totalUsers: Nat;
     totalAdmins: Nat;
@@ -55,16 +88,13 @@ module {
     premiumUsers: Nat;
   };
 
-  // Response type for consistent API responses
   public type Response<T> = Result.Result<T, Text>;
 
-  // Enhanced response types for better error handling
   public type ValidationResult = {
     #valid;
     #invalid: Text;
   };
 
-  // Audit log entry for admin actions
   public type AuditEntry = {
     timestamp: Int;
     performer: Principal;

@@ -1,5 +1,5 @@
 import Time "mo:base/Time";
-import Types "../types/Types";
+import Types "../types/types";
 
 module {
   public type TierType = Types.TierType;
@@ -67,4 +67,19 @@ module {
   public func getCurrentTime() : Int {
     Time.now()
   };
+
+  // public func today() : async Text {
+  //   let now = getCurrentTime();
+  //   let dt = DateTime.fromTime(now); // record with year, month, day, hour, etc.
+
+  //   let y = Nat.toText(dt.year);
+  //   let m = Nat.toText(dt.month);
+  //   let d = Nat.toText(dt.day);
+
+  //   // Pad month and day to 2 digits
+  //   let mm = if (Text.size(m) == 1) { "0" # m } else m;
+  //   let dd = if (Text.size(d) == 1) { "0" # d } else d;
+
+  //   return y # "-" # mm # "-" # dd;
+  // };
 }

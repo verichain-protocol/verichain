@@ -3,8 +3,8 @@ import Principal "mo:base/Principal";
 import Iter "mo:base/Iter";
 import Trie "mo:base/Trie";
 import Text "mo:base/Text";
-import Types "../types/Types";
-import StorageInterface "StorageInterface";
+import Types "../types/types";
+import Storage "storage_interface";
 
 module {
   public type User = Types.User;
@@ -13,7 +13,7 @@ module {
     usersStorage: [(Principal, User)],
     adminStorage: [Principal], 
     anonUsageStorage: [(Text, Nat)]
-  ) : StorageInterface.StorageInterface {
+  ) : Storage.UserStorageInterface {
     // In-memory storage (HashMap for fast lookups)
     private var userStore = Map.HashMap<Principal, User>(0, Principal.equal, Principal.hash);
     private var adminStore = Map.HashMap<Principal, Bool>(0, Principal.equal, Principal.hash);

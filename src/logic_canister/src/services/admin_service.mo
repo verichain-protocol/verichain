@@ -1,15 +1,15 @@
 import Principal "mo:base/Principal";
 import Time "mo:base/Time";
-import Types "../types/Types";
-import ErrorCodes "../types/Errors";
-import StorageInterface "../storage/StorageInterface";
+import Types "../types/types";
+import ErrorCodes "../types/errors";
+import Storage "../storage/storage_interface";
 
 module {
   public type Response<T> = Types.Response<T>;
   public type SystemStatsResponse = Types.SystemStatsResponse;
   public type User = Types.User;
 
-  public class AdminService(storage: StorageInterface.StorageInterface) {
+  public class AdminService(storage: Storage.UserStorageInterface) {
 
     public func addAdmin(caller: Principal, newAdmin: Principal) : Response<Text> {
       if (storage.getAdminCount() == 0 and caller != newAdmin) {
